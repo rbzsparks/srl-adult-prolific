@@ -10,6 +10,7 @@ Usage:
 Options: --target -16 (LUFS)  --pad-ms 40  --threshold-db -45
 """
 import argparse
+import json
 import os
 import re
 import subprocess
@@ -48,7 +49,10 @@ def main():
     ap.add_argument('--target', type=float, default=-16.0)
     ap.add_argument('--pad-ms', type=int, default=40)
     ap.add_argument('--threshold-db', type=float, default=-45.0)
+    ap.add_argument('--source', default='', help='text for the manifest "source" column, e.g. "human recording"')
+    ap.add_argument('--source-map', default='', help='JSON {clip_id: source text}; overrides --source per clip')
     a = ap.parse_args()
+    source_map = json.load(open(a.source_map, encoding='utf-8')) if a.source_map else {}
     ffmpeg, ffprobe = ac.find_tool('ffmpeg'), ac.find_tool('ffprobe')
     os.makedirs(a.out, exist_ok=True)
     tmpdir = os.path.join(ac.ROOT, 'audio_src', '_tmp')
@@ -104,6 +108,7 @@ def main():
         row['file'] = f'{cid}.mp3 | {cid}.ogg'
         row['duration_ms'] = d
         row['is_placeholder'] = 1 if a.placeholder else 0
+        row['source'] = source_map.get(cid, a.source or ('Windows SAPI placeholder' if a.placeholder else ''))
         existing[cid] = row
         print(f'{cid:24s} in {lufs:6.1f} LUFS ({how})  gain {gain:+5.1f} dB  out {final_lufs:6.1f} LUFS  {d} ms')
 

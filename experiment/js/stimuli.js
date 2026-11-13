@@ -5,7 +5,7 @@ SRL.stimuli = (function () {
   let DATA = null;
 
   async function load(base) {
-    const res = await fetch(base + SRL_CONFIG.STIMULI_JSON, { cache: 'no-cache' });
+    const res = await fetch(base + SRL_CONFIG.STIMULI_JSON + '?v=' + encodeURIComponent(SRL_CONFIG.VERSION), { cache: 'no-cache' });
     if (!res.ok) throw new Error('Could not load stimuli.json (' + res.status + ')');
     DATA = await res.json();
     return DATA;

@@ -13,7 +13,8 @@ import sys
 import urllib.parse
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
-ALLOWED = [os.path.join(ROOT, 'sample_data'), os.path.join(ROOT, 'experiment', 'stimuli')]
+ALLOWED = [os.path.join(ROOT, 'sample_data'), os.path.join(ROOT, 'experiment', 'stimuli'),
+           os.path.join(ROOT, 'audio_src', 'elevenlabs')]  # audio_review.html saves the take selection here
 PORT = int(sys.argv[1]) if len(sys.argv) > 1 else 8000
 
 

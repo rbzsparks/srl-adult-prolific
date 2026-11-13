@@ -10,7 +10,7 @@ ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 EXP = os.path.join(ROOT, 'experiment')
 MANIFEST = os.path.join(EXP, 'audio', 'audio_manifest.csv')
 MANIFEST_COLS = ['clip_id', 'speaker_id', 'speaker_gender', 'speaker_age', 'text', 'pronunciation', 'file', 'duration_ms',
-                 'is_placeholder', 'ipa', 'stress', 'notes']
+                 'is_placeholder', 'ipa', 'stress', 'notes', 'source']
 
 
 def find_tool(name):

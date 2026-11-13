@@ -51,7 +51,7 @@ SRL.audio = (function () {
     let lastErr = null;
     for (const ext of exts) {
       try {
-        const res = await fetch(base + SRL_CONFIG.AUDIO_DIR + id + '.' + ext);
+        const res = await fetch(base + SRL_CONFIG.AUDIO_DIR + id + '.' + ext + '?v=' + encodeURIComponent(SRL_CONFIG.VERSION));
         if (!res.ok) throw new Error('HTTP ' + res.status);
         const arr = await res.arrayBuffer();
         const buffer = await new Promise((resolve, reject) => context().decodeAudioData(arr, resolve, reject));

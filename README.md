@@ -348,18 +348,42 @@ There are 12 types, each in exactly one scene: mug, lamp, clock, bowl, picture f
 
 ## 10. Audio
 
-**Current files are placeholders.** They were made with Windows' built-in voices (Zira, David), pitch- and tempo-shifted to give 12 stranger voices plus a narrator. In `audio_manifest.csv` every clip has `is_placeholder = 1`, and its file metadata comment reads "PLACEHOLDER TTS".
+The audio is generated with **ElevenLabs** (Starter plan; model `eleven_v4`). The manifest's `source` column records the model, voice and take for every clip. The earlier Windows text-to-speech placeholders can still be rebuilt with `tools/make_placeholder_audio.py`, which sets `is_placeholder = 1`.
+
+### 10.1 ElevenLabs workflow (`tools/elevenlabs_tts.py`)
+
+- **API key:** read from `ELEVENLABS_API_KEY` or `%USERPROFILE%\.elevenlabs_api_key`, outside the repo. It is only ever sent in the `xi-api-key` header. Permissions needed: Text to Speech, Voices (read), Models (read). Add Speech to Text if you want automatic transcription checks.
+- **Casting:** `experiment/audio/voice_casting.json` maps each speaker to an ElevenLabs voice, matched on gender and age. On a paid plan, Voice Library voices are used directly by ID and take no voice slots; the free plan refuses them through the API.
+
+  | Speaker | Wanted | Voice |
+  |---|---|---|
+  | str01 / str07 | female, young | Sarah / Jessica |
+  | str02 / str08 | male, young | Will / Liam |
+  | str03 / str09 | female, middle-aged | Bella / Adeline (library) |
+  | str04 / str10 | male, middle-aged | Chris / Eric |
+  | str05 / str11 | female, older | Carol / Julie (library) |
+  | str06 / str12 | male, older | Bill / Marv (library) |
+  | narrator | female, middle-aged | Matilda |
+
+- **Steps:**
+  1. `python tools/elevenlabs_tts.py generate --takes 3` writes `audio_src/elevenlabs/takes/` (git-ignored). Novel words are sent as inline IPA, e.g. `It's a /ˈboʊsɑ/!`. Pauses come from punctuation ("Look! ... It's a … ! ... A … !") because v4 has no `<break>` tag.
+  2. `python tools/audio_qc.py` checks every take's duration and pause structure (the same detector the gaze timing uses) and writes a suggested selection.
+  3. Open `http://localhost:8001/tools/audio_review.html` (with `python tools/dev_server.py 8001`). Listen, choose one take per clip, tick "needs regeneration" for bad ones, and click **Save selection**.
+  4. Regenerate flagged clips with `generate --only <clip_ids> --force`. If v4 keeps mispronouncing a word, add `--model-for-words eleven_flash_v2`, which uses exact SSML `<phoneme>` tags.
+  5. `python tools/elevenlabs_tts.py finalize` copies the chosen takes and runs `normalize_audio.py`, writing to `experiment/audio/`. Then commit and push.
+- **Pronunciation check is by ear.** ElevenLabs says inline IPA "can still vary by voice and phrase", which is why there are 3 takes per clip. Make sure each word sounds the same from the stranger and from the narrator (stress on the first syllable).
+
+### 10.2 General
 
 - **Recording script:** `experiment/audio/audio_manifest.csv`, 51 clips. Columns: `clip_id, speaker_id, speaker_gender, speaker_age, text, pronunciation, file, duration_ms, is_placeholder, ipa, stress, notes`. It contains:
   - per stranger (12 voices): `greet_sXX` ("Hi! Good to see you!") and `label_sXX` ("Look! It's a X! A X!")
   - narrator: `test_word_<word>`, `test_face`, `test_incid_<type>`, and `check_window` / `check_garden`
-- **Pronunciation:** novel words use SSML `<phoneme alphabet="ipa">` with the IPA above, so stranger and narrator say them identically. A test confirmed the phoneme tags change the synthesized output. Stress is on the first syllable.
-- **Swapping in final recordings:**
+- **Swapping in human recordings** (optional):
   1. Record each clip and name it `<clip_id>.wav` (any format ffmpeg reads).
   2. Run `python tools/normalize_audio.py --src path/to/recordings`. It trims leading and trailing silence, normalizes to −16 LUFS integrated (iterating so the −1 dBFS limiter doesn't leave clips quiet), resamples to 44.1 kHz mono, writes MP3 + OGG over the old files, and updates `duration_ms` and `is_placeholder = 0` in the manifest.
   3. Nothing else changes. Lip-sync is computed from each file's amplitude envelope at load time, and the gaze timing comes from the label clip's two longest pauses.
 - **Recording requirement:** label clips need a clear pause (≥ 100 ms, ideally 300–500 ms) after "Look!" and after the first "It's a X!".
-- **Loudness:** placeholder output measured −16.0 to −16.8 LUFS.
+- **Loudness:** every clip is normalized to −16 LUFS (within about 0.8 LU).
 - **Playback:** all audio is preloaded with the Web Audio API before the study starts, and playback starts only after the participant's first click ("Start"). If audio can't play, the timeline still runs on the clip durations, and `audio_simulated_scenes` counts those scenes.
 
 ## 11. Data saving
@@ -525,7 +549,7 @@ These are recorded, not enforced: the preregistered rules decide.
 - [ ] **GitHub repo** name → base URL → rebuild the .qsf (§3).
 - [ ] **DataPipe** experiment ID + OSF component (§11).
 - [ ] Confirm **custom JavaScript** is enabled on Harvard's Qualtrics (§4.1).
-- [ ] **Final audio recordings**: 12 stranger voices matched to gender and age, plus a narrator (§10).
+- [ ] **Approve the ElevenLabs audio**: listen to every clip in `tools/audio_review.html`, especially the 12 novel words from both stranger and narrator (§10.1).
 - [ ] **Payment**, after the pilot measures the median duration.
 - [ ] **Pilot (~20 participants)**: check that face and word accuracy fall around 65–75% and incidental accuracy is above 25% but not near ceiling. Tuning knobs:
   - foil similarity (`stimuli.json`)
@@ -541,5 +565,5 @@ These are recorded, not enforced: the preregistered rules decide.
 - **MouseView** is implemented (blur mask + AOI dwell) but was not part of the end-to-end tests.
 - **Prototype.js:** Qualtrics' classic layouts load Prototype.js, whose `Array.prototype.toJSON` makes `JSON.stringify` turn arrays into strings. All of the experiment's serialization goes through `SRL.data.stringify`, which removes it for the call. This was tested by simulating the Prototype patch in the browser, not inside Qualtrics itself.
 - **The experiment draws over the Qualtrics page** as a full-window overlay (`z-index` max), so Qualtrics theme CSS can't distort it. Qualtrics' own header and footer are hidden underneath until the participant clicks Continue.
-- **Placeholder TTS voices are robotic** and the narrator is pitch-matched to one stranger base voice. Replace them before launch.
+- **Synthetic voices:** ElevenLabs audio is far more natural than the old placeholders, but novel-word pronunciation via inline IPA can vary between takes. It is checked by ear, not automatically. Check ElevenLabs' current terms for how the generated audio may be used and credited in publications.
 - **Gaze direction** in this flat style is carried by the eye-dot offset plus a ±5° head tilt. It reads clearly in a still frame, but it's worth a look in the pilot.
