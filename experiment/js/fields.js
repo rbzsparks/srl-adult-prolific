@@ -1,0 +1,30 @@
+/* fields.js: the single list of Qualtrics embedded-data fields written by the experiment.
+ * Read by data.js (JS) and by tools/build_qsf.py and analysis/reshape_qualtrics.py (Python parses the object
+ * literal after "window.SRL_FIELDS ="). Keep it valid JSON. */
+window.SRL_FIELDS = {
+  "participant": [
+    "category", "list", "relationship_type", "is_kin", "ios", "contact_freq", "duration",
+    "name_length", "name_flagged_title", "name_suspect",
+    "known_avatar", "unfamiliar_avatar", "avatar_diff_features", "unfamiliar_name",
+    "audio_check_pass", "audio_check_attempts",
+    "filler1_solved", "filler1_moves", "filler1_time_to_solve_ms", "filler1_n_solved",
+    "filler2_accuracy", "filler2_n",
+    "fam_fast_advance_count", "fam_timeout_count",
+    "fullscreen_exits", "tab_switches", "total_ms", "test_block_order",
+    "reload_pre_fam", "reloaded_post_fam", "reload_stage",
+    "t_intro_ms", "t_setup_ms", "t_designer_ms", "t_audio_check_ms", "t_filler1_ms", "t_fam_ms", "t_filler2_ms", "t_test_ms",
+    "js_start_epoch_ms", "js_end_epoch_ms",
+    "exp_version", "qualtrics_engine", "surprise_test", "mouseview_on", "debug", "seed",
+    "browser", "screen_w", "screen_h", "window_w", "window_h", "window_small_prompt",
+    "audio_load_errors", "audio_simulated_scenes", "word_foil_vowel_relaxed", "js_error"
+  ],
+  "fam_prefix": "fam_",
+  "fam_count": 12,
+  "fam_per_scene": ["scene_set_id", "condition", "stranger_id", "word", "incidental_type", "incidental_color", "view_ms", "timed_out", "label_audio_ms"],
+  "test_types": ["word", "face", "incid"],
+  "scene_set_ids": ["s01", "s02", "s03", "s04", "s05", "s06", "s07", "s08", "s09", "s10", "s11", "s12"],
+  "test_per_trial": ["choice", "correct", "rt_ms", "foils", "position"],
+  "json_prefix": "full_data_json_",
+  "json_chunks": 4,
+  "json_meta": ["full_data_json_n", "full_data_json_truncated"]
+};

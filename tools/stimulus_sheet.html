@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Stimulus Sheet</title>
+<style>
+  body { font-family: system-ui, sans-serif; background: #FAF7F2; color: #222; margin: 16px; }
+  h2 { margin: 24px 0 8px; font-size: 18px; }
+  .row { display: flex; flex-wrap: wrap; gap: 10px; }
+  .cell { background: #fff; border: 1px solid #e3ddd3; border-radius: 8px; padding: 6px; text-align: center; font-size: 11px; }
+  .cell svg { display: block; }
+  .p svg { width: 110px; height: 132px; }
+  .o svg { width: 110px; height: 110px; }
+  .i svg { width: 60px; height: 60px; }
+  button { margin: 8px 0; padding: 6px 12px; }
+</style>
+</head>
+<body>
+<h1 style="font-size:20px">Stimulus sheet (preview + SVG export)</h1>
+<p>Open via <code>python tools/dev_server.py</code> → <code>http://localhost:8000/tools/stimulus_sheet.html</code>.
+  "Export SVGs" writes every stimulus to <code>experiment/stimuli/svg/</code> (dev server only).</p>
+<button id="export">Export SVGs to experiment/stimuli/svg/</button> <span id="status"></span>
+<div id="out"></div>
+<script src="../experiment/js/util.js"></script>
+<script src="../experiment/js/people.js"></script>
+<script src="../experiment/js/objects.js"></script>
+<script>
+(async function () {
+  const P = SRL.people, O = SRL.objects;
+  const stim = await (await fetch('../experiment/stimuli/stimuli.json')).json();
+  const out = document.getElementById('out');
+  const files = {};
+  const sec = (t) => { const h = document.createElement('h2'); h.textContent = t; out.appendChild(h); const r = document.createElement('div'); r.className = 'row'; out.appendChild(r); return r; };
+  const cell = (row, cls, svg, label, file) => {
+    const c = document.createElement('div'); c.className = 'cell ' + cls; c.innerHTML = svg + '<div>' + label + '</div>'; row.appendChild(c);
+    if (file) files[file] = svg;
+  };
+  let r = sec('Strangers (front / facing right) and matched foils (front)');
+  stim.scene_sets.forEach((s) => {
+    const foil = P.foilSpec(s.stranger, s.foil);
+    cell(r, 'p', P.svg(s.stranger), s.stranger.id, `people/${s.stranger.id}_front.svg`);
+    cell(r, 'p', P.svg(s.stranger, { facing: 1 }), s.stranger.id + ' right', `people/${s.stranger.id}_right.svg`);
+    cell(r, 'p', P.svg(foil), foil.id, `people/${foil.id}_front.svg`);
+  });
+  r = sec('Hair styles (designer part library)');
+  Object.keys(P.HAIR_STYLES).forEach((len) => P.HAIR_STYLES[len].forEach((st) =>
+    cell(r, 'p', P.svg({ age: 'middle', skin: 'S3', hairStyle: st, hairColor: 'brown', facial: 'none', glasses: 'none', shirt: 'teal' }), len + ': ' + st)));
+  r = sec('Age, facial hair, glasses');
+  P.AGES.forEach((a) => cell(r, 'p', P.svg({ age: a, skin: 'S2', hairStyle: 'sidepart', hairColor: a === 'older' ? 'gray' : 'darkbrown', facial: 'none', glasses: 'none', shirt: 'navy' }), 'age ' + a));
+  P.FACIAL.forEach((f) => cell(r, 'p', P.svg({ age: 'middle', skin: 'S4', hairStyle: 'crop', hairColor: 'black', facial: f, glasses: 'none', shirt: 'maroon' }), 'facial ' + f));
+  P.GLASSES.forEach((g) => cell(r, 'p', P.svg({ age: 'young', skin: 'S1', hairStyle: 'bob', hairColor: 'auburn', facial: 'none', glasses: g, shirt: 'mustard' }), 'glasses ' + g));
+  r = sec('Expressions (rig states)');
+  const ex = { age: 'young', skin: 'S5', hairStyle: 'long_wavy', hairColor: 'black', facial: 'none', glasses: 'none', shirt: 'rose' };
+  [['neutral', {}], ['smile', { smile: 1 }], ['talk 0.5', { mouth: 0.5 }], ['talk 1', { mouth: 1 }], ['brow up', { brow: 1, smile: 1 }], ['look down-left', { gazeX: -1, gazeY: 1.5 }]]
+    .forEach(([n, st]) => cell(r, 'p', P.svg(ex, { facing: -1, state: st }), n));
+  r = sec('Novel objects (word = scene set label)');
+  stim.scene_sets.forEach((s) => cell(r, 'o', O.novelSvg(s.object_id), s.object_id + ' / ' + s.word, `novel_objects/${s.object_id}.svg`));
+  r = sec('Incidental objects × 4 colors');
+  stim.scene_sets.forEach((s) => Object.entries(stim.incidental_colors).forEach(([cn, hex]) =>
+    cell(r, 'i', O.incidentalSvg(s.incidental, hex), s.incidental + ' ' + cn, `incidental/${s.incidental}_${cn}.svg`)));
+
+  document.getElementById('export').onclick = async () => {
+    const st = document.getElementById('status'); let n = 0;
+    for (const [f, svg] of Object.entries(files)) {
+      const body = svg.replace('<svg ', '<svg width="400" height="' + (f.startsWith('people') ? 480 : 400) + '" ');
+      const res = await fetch('/__save?path=' + encodeURIComponent('experiment/stimuli/svg/' + f), { method: 'POST', body });
+      if (res.ok) n++;
+      st.textContent = `${n} / ${Object.keys(files).length} written`;
+    }
+  };
+  window.SRL_SHEET_FILES = files;
+})();
+</script>
+</body>
+</html>
