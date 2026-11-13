@@ -99,6 +99,8 @@ Example full walkthrough: `…/index.html?debug=1&auto=1&devsave=1&PROLIFIC_PID=
 
 ## 3. Deploy to GitHub Pages
 
+**Status:** done on 2026-11-13. The repo is <https://github.com/rbzsparks/srl-adult-prolific> (public), Pages serves `main` / root, and the .qsf in `qualtrics/` already uses the base URL below. To update the live study, commit and `git push`; Pages redeploys in about a minute.
+
 1. Create a public repo under `rbzsparks`, `srl-adult-prolific`, and push this folder.
 2. Repo **Settings → Pages → Deploy from a branch → main / root**.
 3. The experiment base URL is then `https://rbzsparks.github.io/srl-adult-prolific/experiment/`.
@@ -115,6 +117,9 @@ Example full walkthrough: `…/index.html?debug=1&auto=1&devsave=1&PROLIFIC_PID=
    It should print `access-control-allow-origin: *`. Then do a Qualtrics preview with `debug=1` (see §4). The
    loading bar fills only if all 51 clips were fetched and decoded with the Web Audio API.
    `audio_load_errors` in the data counts any that failed.
+   Without Qualtrics, `tools/remote_load_test.html` (served by `tools/dev_server.py`) loads the live study from
+   GitHub Pages into a page on another origin, the same way the Qualtrics question does. Add `?auto=1` for an
+   autopilot run. Tested 2026-11-13: all scripts loaded, 51/51 audio clips decoded, real playback, no errors.
 6. **Caching.** GitHub Pages caches for about 10 minutes. The question JS appends `?v=<VERSION>` to every file,
    so bump `VERSION` in `config.js` and in the question JS (`VERSION = '…'`) when you change files mid-study.
 

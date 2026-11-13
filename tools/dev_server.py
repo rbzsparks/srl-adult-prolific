@@ -45,7 +45,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         self.wfile.write(b'ok')
 
     def log_message(self, fmt, *args):
-        if '__save' in (args[0] if args else ''):
+        if '__save' in (str(args[0]) if args else ''):
             super().log_message(fmt, *args)
 
 
