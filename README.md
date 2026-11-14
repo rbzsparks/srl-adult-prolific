@@ -207,7 +207,7 @@ All in `experiment/config.js`.
 | `COMPLETION_CODE`, `SCREENOUT_CODE` | placeholders | also set in the .qsf redirects (rebuild with `--completion-code` / `--screenout-code`) |
 | `DATAPIPE.EXPERIMENT_ID` | placeholder | backup is skipped while it's a placeholder or in debug mode |
 | `SURPRISE_TEST` | `true` | `false` adds "Afterwards, we will test your memory…" to the scene instructions; recorded as `surprise_test` |
-| `SHOW_NAME_LABEL` | `true` | `false` removes the name text beneath the known / unfamiliar person in every scene (the name is still used in the setup questions and scene instructions). Override per participant with `name_label=0/1`, from the URL or a Qualtrics embedded field (§8). Recorded as `name_label_shown` |
+| `SHOW_NAME_LABEL` | `false` | `false` (the default since v1.2.1) hides the name text beneath the known / unfamiliar person in every scene; `true` shows it (the name is still used in the setup questions and scene instructions). Override per participant with `name_label=0/1`, from the URL or a Qualtrics embedded field (§8). Recorded as `name_label_shown` |
 | `MOUSEVIEW` | `false` | blur-except-cursor spotlight + AOI dwell (`dwell_*_ms` in the JSON backup). Lightly tested only |
 | `TEST_BLOCK_ORDER_MODE` | `'fixed'` | fixed `word → face → incid`; `'counterbalanced'` = random of the 6 orders; recorded as `test_block_order` |
 | `CONFIDENCE_RATINGS` | `false` | 1–4 after each test trial (JSON backup only) |
@@ -242,7 +242,7 @@ Inside the experiment block (Qualtrics handles consent, post-test, demographics 
 
 **Scene timeline** (identical in both conditions; only the right-hand avatar and its name differ):
 
-1. The other person is on screen, with their name beneath them unless `SHOW_NAME_LABEL` is off. The stranger slides in from the left (600 ms, small walking bob) and the other person looks at them.
+1. The other person is on screen. By default no name is shown; with `SHOW_NAME_LABEL: true` or `name_label=1`, their name appears beneath them. The stranger slides in from the left (600 ms, small walking bob) and the other person looks at them.
 2. **Greeting audio**: "Hi! Good to see you!" The stranger's mouth is amplitude-driven, with a slight head bob.
 3. **Response** (900 ms): the other person smiles, raises their eyebrows, tilts their head and does a small happy bounce.
 4. **Label audio**: "Look! It's a *bosa*! A *bosa*!"
@@ -429,7 +429,7 @@ python analysis/reshape_qualtrics.py export.csv -o long.csv
 |---|---|
 | `PROLIFIC_PID`, `STUDY_ID`, `SESSION_ID` | from the Prolific URL |
 | `debug` | `1` if the URL had `debug=1` (set by the URL) |
-| `name_label` | `0`/`1` if set by the URL or survey flow (blank = use `SHOW_NAME_LABEL`) |
+| `name_label` | `0`/`1` if set by the URL or survey flow (blank = use `SHOW_NAME_LABEL`, default hidden) |
 | `category`, `list` | set by the Randomizer (also written back by the experiment) |
 | `device_ok`, `device_reason`, `device_screen`, `device_window` | device check before consent (`reason`: mobile / no_mouse / small_screen) |
 | `consent` | 1 = agree, 2 = do not agree |

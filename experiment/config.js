@@ -3,7 +3,7 @@
  * Edit this file, push to GitHub Pages, and the live study picks it up.
  * ===================================================================== */
 window.SRL_CONFIG = {
-  VERSION: '1.2.0',
+  VERSION: '1.2.1',
 
   /* ---------- Qualtrics ---------- */
   // 'legacy' = classic layouts (Flat / Modern / Classic): Qualtrics.SurveyEngine.setEmbeddedData
@@ -27,7 +27,7 @@ window.SRL_CONFIG = {
 
   /* ---------- [DECISION] flags ---------- */
   SURPRISE_TEST: true,          // true = incidental learning (no mention of a memory test)
-  SHOW_NAME_LABEL: true,        // true = the known/unfamiliar person's name is shown as text beneath them in every scene.
+  SHOW_NAME_LABEL: false,       // true = the known/unfamiliar person's name is shown as text beneath them in every scene.
                                 // Per-participant override: URL / Qualtrics embedded field name_label=1 (show) or 0 (hide).
                                 // Recorded as name_label_shown.
   MOUSEVIEW: false,             // blur-except-cursor spotlight + AOI dwell logging during scenes
