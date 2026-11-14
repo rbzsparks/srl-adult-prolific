@@ -4,7 +4,7 @@ Qualtrics.SurveyEngine.addOnload(function () {
   q.hideNextButton();
   if (q.hidePreviousButton) { q.hidePreviousButton(); }
   var BASE_URL = 'https://rbzsparks.github.io/srl-adult-prolific/experiment/';
-  var VERSION = '1.1.0';
+  var VERSION = '1.1.1';
   var params = {
     PROLIFIC_PID: "${e://Field/PROLIFIC_PID}", STUDY_ID: "${e://Field/STUDY_ID}", SESSION_ID: "${e://Field/SESSION_ID}",
     category: "${e://Field/category}", list: "${e://Field/list}", debug: "${e://Field/debug}", ResponseID: "${e://Field/ResponseID}"

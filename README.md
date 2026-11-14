@@ -143,7 +143,7 @@ Survey flow in the .qsf:
 
 1. **Embedded Data**: `PROLIFIC_PID`, `STUDY_ID`, `SESSION_ID`, `debug` (from the URL), plus every field the experiment writes (358 fields; listed in `qualtrics/embedded_data_fields.txt`).
 2. **Device check** (JS, before consent): mobile/tablet, no mouse/trackpad, or a screen smaller than 1024 × 650 (either orientation) → message → **End of Survey → redirect to `…/complete?cc=SCREENOUT_CODE`**.
-3. **Consent** (placeholder text, shows the ~18 min estimate). "I do not agree" → "Please return this study on Prolific" (no Next button, no code).
+3. **Consent** (placeholder text, shows the ~17 min estimate). "I do not agree" → "Please return this study on Prolific" (no Next button, no code).
 4. **Randomizer**: present 1 of 6, **evenly present** on. Each element sets `category` (acquaintance / moderate / close) × `list` (A / B).
 5. **Experiment (JS)**: one question whose JS loads the experiment from `BASE_URL`; the Next button is hidden and clicked automatically when the participant finishes.
 6. **Post-test questions**: expected a test? (Yes / No / Not sure), strategy (optional text), 2 experience items with 2 attention checks between them, technical problems (optional).
@@ -194,7 +194,7 @@ fields appear in the data.
 - Study URL: `https://<your>.qualtrics.com/jfe/form/SV_xxx?PROLIFIC_PID={{%PROLIFIC_PID%}}&STUDY_ID={{%STUDY_ID%}}&SESSION_ID={{%SESSION_ID%}}`
 - Device filter: **Desktop only**. Listing text: **"Requires audio (headphones or speakers)."**
 - Completion code: the same `COMPLETION_CODE` as in the .qsf. Screen-out code (device check only): `SCREENOUT_CODE`.
-- Duration estimate shown on the consent page: about 18 min (`ESTIMATED_MINUTES`). Confirm it with the pilot (`total_ms`, `t_*_ms`, and Qualtrics `Duration`), then set pay at or above Prolific's recommended rate.
+- Duration estimate shown on the consent page: about 17 min (`ESTIMATED_MINUTES`). Confirm it with the pilot (`total_ms`, `t_*_ms`, and Qualtrics `Duration`), then set pay at or above Prolific's recommended rate.
 
 ## 6. Configuration and [DECISION] flags
 
@@ -210,7 +210,7 @@ All in `experiment/config.js`.
 | `TEST_BLOCK_ORDER_MODE` | `'fixed'` | fixed `word → face → incid`; `'counterbalanced'` = random of the 6 orders; recorded as `test_block_order` |
 | `CONFIDENCE_RATINGS` | `false` | 1–4 after each test trial (JSON backup only) |
 | `AUDIO_CHECK_EXCLUDES` | `false` | failed audio check is flagged only |
-| `TIMING.*` | spec values | stranger entry 600 ms; response 900 ms; SPACE enabled 1 s after the label audio ends; auto-advance 15 s after it ends; ISI 500 ms; fillers 90 s / 120 s |
+| `TIMING.*` | spec values | stranger entry 600 ms; response 900 ms; SPACE enabled 1 s after the label audio ends; auto-advance 15 s after it ends; ISI 500 ms; fillers 30 s / 90 s |
 | `DEBUG_TIMING` | fillers 15 s | applied with `debug=1` |
 | `DEVICE` | 1024 × 650 screen; window prompt below 1000 × 600 | small windows get a "please maximize" prompt, never a rejection |
 | `UNFAMILIAR_NAMES` | Jordan, Taylor, Casey, Morgan, Riley, Avery, Quinn, Jamie (+4 spares) | first one that isn't a near-match of the typed name |
@@ -232,9 +232,9 @@ Inside the experiment block (Qualtrics handles consent, post-test, demographics 
 | 6 | Relationship duration (5 options) | `t_setup_ms` |
 | 7 | Avatar designer: "Make an avatar that looks like [name]" | `t_designer_ms` |
 | 8 | Sound check: "window", then "garden" on a second attempt. Case and spaces ignored; one letter off accepted | `t_audio_check_ms` |
-| 9 | Filler 1: 3 × 3 sliding puzzle, fixed 90 s (a new puzzle appears if solved early) | `t_filler1_ms` |
+| 9 | Filler 1: 3 × 3 sliding puzzle, fixed 30 s (a new puzzle appears if solved early) | `t_filler1_ms` |
 | 10 | Scene instructions (surprise framing) + 12 scenes | `t_fam_ms` |
-| 11 | Filler 2: arithmetic verification (Y/N), fixed 120 s | `t_filler2_ms` |
+| 11 | Filler 2: arithmetic verification (Y/N), fixed 90 s (retention delay before the tests) | `t_filler2_ms` |
 | 12 | "Questions about the scenes" → Word (12) → Face (12) → Incidental (12), each block with a short intro | `t_test_ms` |
 | 13 | "Click Continue to answer a few final questions" (data written to Qualtrics here) | |
 
@@ -253,8 +253,8 @@ Inside the experiment block (Qualtrics handles consent, post-test, demographics 
 6. "Press SPACE to continue" appears **1 s after the label audio ends**. **`view_ms` = keypress time − label-audio end.** The scene auto-advances 15 s after the label audio ends (`timed_out = 1`). Then a 500 ms blank.
 
 **Measured in debug runs** (placeholder audio, fillers shortened): one scene ≈ 7.6–8.6 s with an immediate keypress.
-The real-length experiment block is about 3 min setup + 1 min designer + 0.5 min sound check + 1.5 min puzzle +
-2–4 min scenes + 2 min arithmetic + 3–4 min tests ≈ 13–16 min. With consent and post-test, about 16–18 min.
+The real-length experiment block is about 3 min setup + 1 min designer + 0.5 min sound check + 0.5 min puzzle +
+2–4 min scenes + 1.5 min arithmetic + 3–4 min tests ≈ 11.5–14.5 min. With consent and post-test, about 15–17 min.
 **Confirm with the pilot.**
 
 **Final-frame AOIs** (stage coordinates, 0–1, `[x0, y0, x1, y1]`; also stored in the JSON backup as `aoi_norm`):
@@ -453,7 +453,7 @@ python analysis/reshape_qualtrics.py export.csv -o long.csv
 | `unfamiliar_name` | name shown under the unfamiliar person |
 | `audio_check_pass` | 1 if either check word was typed correctly (one letter off accepted) |
 | `audio_check_attempts` | 1–2 |
-| `filler1_solved` | 1 if the first sliding puzzle was solved within 90 s |
+| `filler1_solved` | 1 if the first sliding puzzle was solved within the time limit (30 s) |
 | `filler1_moves` | moves made on the first puzzle |
 | `filler1_time_to_solve_ms` | time to solve the first puzzle (blank if unsolved) |
 | `filler1_n_solved` | number of puzzles solved |
