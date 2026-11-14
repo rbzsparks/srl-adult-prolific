@@ -17,6 +17,7 @@
   Scene set <select id="set"></select>
   Condition <select id="cond"><option>known</option><option>unfamiliar</option></select>
   Known name <input id="nm" value="Alex" size="10">
+  <label><input type="checkbox" id="shownm" checked> show name text</label>
   <button id="play">▶ Play scene</button>
   <button id="final">Show final frame</button>
   <span>(Press SPACE to end a playing scene.)</span>
@@ -44,7 +45,7 @@
   const unf = SRL.people.makeUnfamiliar(known, 3).spec;
   const wrap = document.getElementById('wrap'), log = document.getElementById('log');
   const ctx = () => ({ knownSpec: known, unfamiliarSpec: unf, knownName: document.getElementById('nm').value, unfamiliarName: 'Jordan',
-    timing: Object.assign({}, SRL_CONFIG.TIMING, { ISI: 0 }), debug: false, auto: false, list: 'A' });
+    timing: Object.assign({}, SRL_CONFIG.TIMING, { ISI: 0 }), debug: false, auto: false, list: 'A', showName: document.getElementById('shownm').checked });
   const scene = () => Object.assign({}, design.byId[sel.value], { condition: document.getElementById('cond').value });
   document.getElementById('play').onclick = async () => {
     await SRL.audio.unlock();

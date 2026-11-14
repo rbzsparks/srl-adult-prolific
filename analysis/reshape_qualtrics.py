@@ -47,7 +47,7 @@ def read_export(path):
 
 LONG_COLS = [
     # participant level
-    'prolific_pid', 'study_id', 'session_id', 'response_id', 'category', 'list', 'test_block_order', 'surprise_test', 'mouseview_on',
+    'prolific_pid', 'study_id', 'session_id', 'response_id', 'category', 'list', 'test_block_order', 'surprise_test', 'name_label_shown', 'mouseview_on',
     'relationship_type', 'is_kin', 'ios', 'contact_freq', 'duration', 'name_length', 'name_flagged_title', 'name_suspect',
     'known_avatar', 'unfamiliar_avatar', 'avatar_diff_features', 'unfamiliar_name', 'audio_check_pass',
     'filler1_solved', 'filler1_moves', 'filler2_accuracy', 'fam_fast_advance_count', 'fam_timeout_count',
@@ -59,7 +59,7 @@ LONG_COLS = [
     'test_type', 'target_id', 'foil_ids', 'target_position', 'response_id_choice', 'correct', 'rt_ms',
     'k', 'f'
 ]
-PCOLS_FROM_ED = ['category', 'list', 'test_block_order', 'surprise_test', 'mouseview_on', 'relationship_type', 'is_kin', 'ios',
+PCOLS_FROM_ED = ['category', 'list', 'test_block_order', 'surprise_test', 'name_label_shown', 'mouseview_on', 'relationship_type', 'is_kin', 'ios',
                  'contact_freq', 'duration', 'name_length', 'name_flagged_title', 'name_suspect', 'known_avatar', 'unfamiliar_avatar',
                  'avatar_diff_features', 'unfamiliar_name', 'audio_check_pass', 'filler1_solved', 'filler1_moves', 'filler2_accuracy',
                  'fam_fast_advance_count', 'fam_timeout_count', 'fullscreen_exits', 'tab_switches', 'reload_pre_fam',

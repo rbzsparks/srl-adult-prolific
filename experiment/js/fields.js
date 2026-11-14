@@ -14,7 +14,7 @@ window.SRL_FIELDS = {
     "reload_pre_fam", "reloaded_post_fam", "reload_stage",
     "t_intro_ms", "t_setup_ms", "t_designer_ms", "t_audio_check_ms", "t_filler1_ms", "t_fam_ms", "t_filler2_ms", "t_test_ms",
     "js_start_epoch_ms", "js_end_epoch_ms",
-    "exp_version", "qualtrics_engine", "surprise_test", "mouseview_on", "debug", "seed",
+    "exp_version", "qualtrics_engine", "surprise_test", "name_label_shown", "mouseview_on", "debug", "seed",
     "browser", "screen_w", "screen_h", "window_w", "window_h", "window_small_prompt",
     "audio_load_errors", "audio_simulated_scenes", "word_foil_vowel_relaxed", "js_error"
   ],

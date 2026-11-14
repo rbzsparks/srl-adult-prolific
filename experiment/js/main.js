@@ -48,6 +48,8 @@ SRL.main = (function () {
     };
     window.SRL_STATE_FOR_DEBUG = debug ? S : undefined;
     S.timing = Object.assign({}, C.TIMING, debug ? C.DEBUG_TIMING : {});
+    // Name text beneath the person in scenes: config default, overridable per participant (name_label=0/1).
+    S.showName = params.name_label === '0' ? false : params.name_label === '1' ? true : C.SHOW_NAME_LABEL !== false;
     const tStart = U.now();
     S.p.js_start_epoch_ms = Date.now();
 
@@ -63,6 +65,7 @@ SRL.main = (function () {
     Object.assign(S.p, {
       category: S.category, list: S.list, seed, exp_version: C.VERSION, qualtrics_engine: C.QUALTRICS_ENGINE,
       surprise_test: C.SURPRISE_TEST ? 1 : 0, mouseview_on: C.MOUSEVIEW ? 1 : 0, debug: debug ? 1 : 0,
+      name_label_shown: S.showName ? 1 : 0, name_label_source: ['0', '1'].indexOf(params.name_label) >= 0 ? 'override' : 'config',
       browser: U.browserInfo(), screen_w: screen.width, screen_h: screen.height,
       window_w: window.innerWidth, window_h: window.innerHeight, fullscreen_exits: 0, tab_switches: 0,
       reload_pre_fam: 0, reloaded_post_fam: 0, reload_stage: '', js_error: '',
@@ -194,7 +197,7 @@ SRL.main = (function () {
     ];
     S.design.fam.forEach((sc, i) => timeline.push(step('fam_scene', 'fam', async (el) => {
       const ctx = { knownSpec: S.knownSpec, unfamiliarSpec: S.unfamiliarSpec, knownName: S.knownName, unfamiliarName: S.unfamiliarName,
-        timing: S.timing, debug: S.debug, auto: S.auto, list: S.list };
+        timing: S.timing, debug: S.debug, auto: S.auto, list: S.list, showName: S.showName };
       const r = await SRL.scene.run(el, sc, ctx);
       r.fam_position = i + 1;
       S.fam.push(r);

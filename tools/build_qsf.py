@@ -60,7 +60,7 @@ EXPERIMENT_JS = r"""Qualtrics.SurveyEngine.addOnload(function () {
   var VERSION = '__VERSION__';
   var params = {
     PROLIFIC_PID: "${e://Field/PROLIFIC_PID}", STUDY_ID: "${e://Field/STUDY_ID}", SESSION_ID: "${e://Field/SESSION_ID}",
-    category: "${e://Field/category}", list: "${e://Field/list}", debug: "${e://Field/debug}", ResponseID: "${e://Field/ResponseID}"
+    category: "${e://Field/category}", list: "${e://Field/list}", debug: "${e://Field/debug}", name_label: "${e://Field/name_label}", ResponseID: "${e://Field/ResponseID}"
   };
   function fail(e) {
     var c = q.getQuestionContainer ? q.getQuestionContainer() : document.body;
@@ -226,7 +226,7 @@ def main():
     f = load_fields()
     exp_fields = [pre + n for n in all_field_names(f)]
     device_fields = [pre + n for n in ['device_ok', 'device_reason', 'device_screen', 'device_window']]
-    declared = ['PROLIFIC_PID', 'STUDY_ID', 'SESSION_ID', 'debug', 'category', 'list'] + device_fields + exp_fields
+    declared = ['PROLIFIC_PID', 'STUDY_ID', 'SESSION_ID', 'debug', 'name_label', 'category', 'list'] + device_fields + exp_fields
     # category/list are written by the Randomizer; the experiment also writes them back (as written fields).
     declared = list(dict.fromkeys(declared))
 

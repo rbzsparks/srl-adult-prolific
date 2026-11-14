@@ -2,6 +2,7 @@ PROLIFIC_PID
 STUDY_ID
 SESSION_ID
 debug
+name_label
 category
 list
 device_ok
@@ -50,6 +51,7 @@ js_end_epoch_ms
 exp_version
 qualtrics_engine
 surprise_test
+name_label_shown
 mouseview_on
 seed
 browser

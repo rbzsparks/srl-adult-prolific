@@ -51,7 +51,7 @@ SRL.scene = (function () {
         <g class="sc-object">${O.novelSvg(sc.object_id, `x="${POS.object.x}" y="${POS.object.y}" width="${POS.object.w}" height="${POS.object.h}"`)}</g>
         <rect x="0" y="560" width="${W}" height="65" fill="#FBF8F3"/>
         <rect x="0" y="560" width="${W}" height="1.5" fill="#E3DACB"/>
-        <text x="${POS.name.x}" y="${POS.name.y}" text-anchor="middle" class="sc-name">${U.escapeHtml(otherName)}</text>
+        ${ctx.showName === false ? '' : `<text x="${POS.name.x}" y="${POS.name.y}" text-anchor="middle" class="sc-name">${U.escapeHtml(otherName)}</text>`}
         <text x="330" y="600" text-anchor="middle" class="sc-prompt" visibility="hidden">Press SPACE to continue</text>
       </svg>
       <div class="srl-mouseview" hidden></div>
@@ -107,7 +107,7 @@ SRL.scene = (function () {
     const st = build(el, sc, ctx);
     const t0 = U.now();
     const stopMV = SRL_CONFIG.MOUSEVIEW ? startMouseView(st, el) : null;
-    if (ctx.debug) SRL.ui.debug(`${sc.id} | ${sc.condition} | ${sc.stranger.id} | ${sc.word} | ${sc.incidental}/${sc.incidental_color} | list ${ctx.list}`);
+    if (ctx.debug) SRL.ui.debug(`${sc.id} | ${sc.condition} | name ${ctx.showName === false ? 'hidden' : 'shown'} | ${sc.stranger.id} | ${sc.word} | ${sc.incidental}/${sc.incidental_color} | list ${ctx.list}`);
     const S = st.stranger, Ot = st.other;
     S.set(Object.assign({ smile: 0.3 }, GAZE.stranger.other));
     Ot.set(Object.assign({ smile: 0.2 }, GAZE.other.ahead));

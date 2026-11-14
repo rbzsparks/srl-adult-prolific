@@ -89,6 +89,7 @@ Then open `http://localhost:8000/experiment/index.html?debug=1`. URL parameters:
 | `category` | `acquaintance` \| `moderate` \| `close` (random if missing) |
 | `list` | `A` \| `B` (random if missing) |
 | `debug=1` | fillers shortened to 15 s; condition / stimulus IDs shown on screen; no DataPipe; data downloaded |
+| `name_label` | `0` hides / `1` shows the name text beneath the person in scenes (overrides `SHOW_NAME_LABEL`) |
 | `auto=1` | with `debug=1`: autopilot clicks through the whole study (~3–4 min) |
 | `devsave=1` | with the dev server: write output files into `sample_data/` instead of downloading |
 | `reset=1` | clear the reload marker for this PROLIFIC_PID (otherwise a second visit counts as a reload) |
@@ -141,7 +142,7 @@ Example full walkthrough: `…/index.html?debug=1&auto=1&devsave=1&PROLIFIC_PID=
 
 Survey flow in the .qsf:
 
-1. **Embedded Data**: `PROLIFIC_PID`, `STUDY_ID`, `SESSION_ID`, `debug` (from the URL), plus every field the experiment writes (358 fields; listed in `qualtrics/embedded_data_fields.txt`).
+1. **Embedded Data**: `PROLIFIC_PID`, `STUDY_ID`, `SESSION_ID`, `debug`, `name_label` (from the URL), plus every field the experiment writes (360 fields in total; listed in `qualtrics/embedded_data_fields.txt`).
 2. **Device check** (JS, before consent): mobile/tablet, no mouse/trackpad, or a screen smaller than 1024 × 650 (either orientation) → message → **End of Survey → redirect to `…/complete?cc=SCREENOUT_CODE`**.
 3. **Consent** (placeholder text, shows the ~17 min estimate). "I do not agree" → "Please return this study on Prolific" (no Next button, no code).
 4. **Randomizer**: present 1 of 6, **evenly present** on. Each element sets `category` (acquaintance / moderate / close) × `list` (A / B).
@@ -206,6 +207,7 @@ All in `experiment/config.js`.
 | `COMPLETION_CODE`, `SCREENOUT_CODE` | placeholders | also set in the .qsf redirects (rebuild with `--completion-code` / `--screenout-code`) |
 | `DATAPIPE.EXPERIMENT_ID` | placeholder | backup is skipped while it's a placeholder or in debug mode |
 | `SURPRISE_TEST` | `true` | `false` adds "Afterwards, we will test your memory…" to the scene instructions; recorded as `surprise_test` |
+| `SHOW_NAME_LABEL` | `true` | `false` removes the name text beneath the known / unfamiliar person in every scene (the name is still used in the setup questions and scene instructions). Override per participant with `name_label=0/1`, from the URL or a Qualtrics embedded field (§8). Recorded as `name_label_shown` |
 | `MOUSEVIEW` | `false` | blur-except-cursor spotlight + AOI dwell (`dwell_*_ms` in the JSON backup). Lightly tested only |
 | `TEST_BLOCK_ORDER_MODE` | `'fixed'` | fixed `word → face → incid`; `'counterbalanced'` = random of the 6 orders; recorded as `test_block_order` |
 | `CONFIDENCE_RATINGS` | `false` | 1–4 after each test trial (JSON backup only) |
@@ -240,7 +242,7 @@ Inside the experiment block (Qualtrics handles consent, post-test, demographics 
 
 **Scene timeline** (identical in both conditions; only the right-hand avatar and its name differ):
 
-1. The other person is on screen with their name beneath. The stranger slides in from the left (600 ms, small walking bob) and the other person looks at them.
+1. The other person is on screen, with their name beneath them unless `SHOW_NAME_LABEL` is off. The stranger slides in from the left (600 ms, small walking bob) and the other person looks at them.
 2. **Greeting audio**: "Hi! Good to see you!" The stranger's mouth is amplitude-driven, with a slight head bob.
 3. **Response** (900 ms): the other person smiles, raises their eyebrows, tilts their head and does a small happy bounce.
 4. **Label audio**: "Look! It's a *bosa*! A *bosa*!"
@@ -264,6 +266,10 @@ The real-length experiment block is about 3 min setup + 1 min designer + 0.5 min
 
 ## 8. Counterbalancing and randomization
 
+- **Name text (optional factor):** to run with- and without-name versions, either
+  - set `SHOW_NAME_LABEL` in `config.js` (applies to everyone), or
+  - give participants `name_label=1` / `name_label=0`, for example with separate Prolific study URLs ending in `&name_label=0`, or inside the existing Qualtrics Randomizer elements (set embedded field `name_label` alongside `category` and `list`). The field is already declared in the survey flow.
+  Each participant's value is recorded as `name_label_shown` (1/0) and `name_label_source` (config / override, in the JSON backup).
 - **Between subjects:** `category` (3) × `list` (2) from the Qualtrics Randomizer (6 branches, evenly presented). If those fields are empty (piping failure), the experiment assigns them at random and records `assign_fallback = 1` in the JSON backup.
 - **Lists:** list A: scene sets s01–s06 = known, s07–s12 = unfamiliar. List B: swapped. Scene sets are matched in pairs (s01/s07, s02/s08, …) on gender presentation, apparent age and skin-tone band. So within each list, the 6 known and the 6 unfamiliar scenes each have 3 female-presenting and 3 male-presenting strangers, covering the same 6 skin tones and the same age spread (2 young, 2 middle-aged, 2 older).
 - **Per participant (seeded RNG; `seed` is recorded, so every assignment can be reconstructed):**
@@ -423,6 +429,7 @@ python analysis/reshape_qualtrics.py export.csv -o long.csv
 |---|---|
 | `PROLIFIC_PID`, `STUDY_ID`, `SESSION_ID` | from the Prolific URL |
 | `debug` | `1` if the URL had `debug=1` (set by the URL) |
+| `name_label` | `0`/`1` if set by the URL or survey flow (blank = use `SHOW_NAME_LABEL`) |
 | `category`, `list` | set by the Randomizer (also written back by the experiment) |
 | `device_ok`, `device_reason`, `device_screen`, `device_window` | device check before consent (`reason`: mobile / no_mouse / small_screen) |
 | `consent` | 1 = agree, 2 = do not agree |
@@ -470,6 +477,7 @@ python analysis/reshape_qualtrics.py export.csv -o long.csv
 | `t_intro_ms` … `t_test_ms` | time per section (§7 table) |
 | `js_start_epoch_ms`, `js_end_epoch_ms` | Unix ms at the start and end of the JS block |
 | `exp_version`, `qualtrics_engine`, `surprise_test`, `mouseview_on`, `debug`, `seed` | run settings (`seed` reproduces every randomization) |
+| `name_label_shown` | 1 = name text shown beneath the person in scenes, 0 = hidden |
 | `browser`, `screen_w`, `screen_h`, `window_w`, `window_h`, `window_small_prompt` | display info |
 | `audio_load_errors` | clips that failed to load (0 expected) |
 | `audio_simulated_scenes` | scenes where audio could not play |
