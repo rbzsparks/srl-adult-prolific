@@ -331,6 +331,13 @@ There are 12 types, each in exactly one scene: mug, lamp, clock, bowl, picture f
 ### People
 
 - **Renderer:** a parametric bust renderer reproduces the reference style (rounded shoulders, round head, simple hair shapes, dot eyes). It adds small eyebrows, which are needed for the eyebrow-raise response.
+- **Feature contrast across skin tones:** facial-feature colours are computed from the skin they sit on (CIELAB lightness difference, dL*), so no feature is masked on darker or lighter skin (`featureColors` in `experiment/js/people.js`):
+  - mouth (line and open interior): dL* = 24 on every skin. This is the same for everyone, and is about the maximum the darkest tone (S6, L* 28) allows.
+  - eyes: near-black on every skin (dL* ≥ 23).
+  - brows: hair-based colour, pushed lighter or darker (whichever is the smaller change) until dL* ≥ 25.
+  - beard / mustache: the hair colour pushed the same way until dL* ≥ 22. Stubble is a solid tint at dL* = 18. A skin-coloured halo under the mouth keeps it separate from a dark mustache.
+  - age lines: dL* = 10 (middle-aged) and 16 (older) on every skin, so age cues are equally visible.
+  - Head hair is unchanged. Previews: `sample_data/_preview/feature_contrast_*.png`.
 - **Facing:** in scenes, the stranger faces right and the other person faces left; the eye dots and mouth are offset toward the other person. Test faces are front-facing.
 - **Strangers:** 12 preset strangers and 12 matched foils.
   - Each foil keeps its stranger's shirt, hair-length category, glasses, facial hair and apparent age, and has a skin tone nudged 35% toward the neighbouring shade.

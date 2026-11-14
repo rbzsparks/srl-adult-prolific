@@ -68,6 +68,60 @@ SRL.people = (function () {
     }
   };
 
+  /* Feature contrast. Facial features are coloured relative to the skin they sit on, measured as CIELAB
+   * lightness difference (dL*), so no feature is masked on any skin tone:
+   *   mouth (line and open interior)  dL* = 24 on every skin (equalised; the darkest skin S6 can reach ~25)
+   *   eyes                             near-black on every skin (dL* >= 23)
+     *   brows                            hair-based colour, pushed lighter or darker (smaller change) until dL* >= 25
+   *   age lines                        dL* = 10 (middle) / 16 (older) on every skin, so age cues are equally visible
+   *   facial hair                      hair colour pushed to dL* >= 22; stubble dL* = 18 on every skin
+   * Check: tools/stimulus_sheet.html shows every face; SRL.people.featureColors(skin, hair) gives the colours. */
+  const INK = '#120B09', LIGHT_INK = '#F4F1EC';
+  function lstar(hex) {
+    const lin = (c) => { c /= 255; return c <= 0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4); };
+    const n = parseInt(hex.replace('#', ''), 16);
+    const Y = 0.2126 * lin(n >> 16) + 0.7152 * lin((n >> 8) & 255) + 0.0722 * lin(n & 255);
+    return Y > 0.008856 ? 116 * Math.cbrt(Y) - 16 : 903.3 * Y;
+  }
+  // Mix `base` toward `toward` just far enough that |L*(result) - L*(skin)| >= dl (or as far as possible).
+  function separate(base, skin, toward, dl) {
+    const Ls = lstar(skin);
+    if (Math.abs(lstar(base) - Ls) >= dl) return base;
+    let lo = 0, hi = 1;
+    if (Math.abs(lstar(U.mixHex(base, toward, 1)) - Ls) < dl) return U.mixHex(base, toward, 1);
+    for (let i = 0; i < 20; i++) { const m = (lo + hi) / 2; if (Math.abs(lstar(U.mixHex(base, toward, m)) - Ls) >= dl) hi = m; else lo = m; }
+    return U.mixHex(base, toward, hi);
+  }
+  // Push `base` lighter or darker, whichever needs the smaller change, until it differs from the skin by dl.
+  function away(base, skin, dl) {
+    const Ls = lstar(skin), Lb = lstar(base);
+    if (Math.abs(Lb - Ls) >= dl) return base;
+    const c = [separate(base, skin, INK, dl), separate(base, skin, LIGHT_INK, dl)]
+      .map((x) => ({ x, ok: Math.abs(lstar(x) - Ls) >= dl - 0.5, move: Math.abs(lstar(x) - Lb), con: Math.abs(lstar(x) - Ls) }));
+    const ok = c.filter((o) => o.ok).sort((a, b) => a.move - b.move);
+    return ok.length ? ok[0].x : c.sort((a, b) => b.con - a.con)[0].x;
+  }
+  // A darker shade of the skin with exactly dl lower L* (clamped at INK).
+  function shade(skin, dl) {
+    const target = lstar(skin) - dl;
+    let lo = 0, hi = 1;
+    if (lstar(U.mixHex(skin, INK, 1)) > target) return INK;
+    for (let i = 0; i < 20; i++) { const m = (lo + hi) / 2; if (lstar(U.mixHex(skin, INK, m)) <= target) hi = m; else lo = m; }
+    return U.mixHex(skin, INK, hi);
+  }
+  function featureColors(skin, hair) {
+    const brow0 = U.mixHex(hair, '#3A2A22', 0.45);
+    const brow = away(brow0, skin, 25);
+    // Facial hair keeps the hair colour but is pushed away from the skin (dL* >= 22) so a beard or mustache is
+    // visible on every skin; stubble is a solid tint between skin and that colour at dL* = 18 (no opacity).
+    const facial = away(hair, skin, 22);
+    const Ls = lstar(skin), Lf = lstar(facial);
+    let lo = 0, hi = 1;
+    if (Math.abs(Lf - Ls) > 18) for (let i = 0; i < 20; i++) { const m = (lo + hi) / 2; if (Math.abs(lstar(U.mixHex(skin, facial, m)) - Ls) >= 18) hi = m; else lo = m; }
+    const stubble = U.mixHex(skin, facial, hi);
+    return { mouth: shade(skin, 24), eye: INK, brow, lineMid: shade(skin, 10), lineOld: shade(skin, 16), facial, stubble };
+  }
+
   function resolve(spec) {
     // Accepts palette keys (skin 'S3', hairColor 'gray', shirt key) or raw hex values.
     const skin = SKIN[spec.skin] || spec.skinHex || spec.skin;
@@ -95,8 +149,7 @@ SRL.people = (function () {
     const { skin, hair, shirt } = resolve(spec);
     const style = STYLE_DEF[spec.hairStyle] || STYLE_DEF.crop;
     const hairStroke = U.mixHex(hair, '#000000', 0.25);
-    const browColor = U.mixHex(hair, '#3A2A22', 0.45);
-    const lineColor = U.mixHex(skin, '#000000', 0.32);
+    const fc = featureColors(skin, hair);
     const st = Object.assign({ gazeX: 0, gazeY: 0, mouth: 0, smile: 0, brow: 0 }, opts.state || {});
     const ex = dx + st.gazeX, ey = st.gazeY;
     const m = mouthPath(dx, st.mouth, st.smile);
@@ -104,18 +157,20 @@ SRL.people = (function () {
 
     let face = '';
     if (spec.age === 'middle') {
-      face += `<path d="M${40.5 + dx} 51 Q${43 + dx} 52 ${45.5 + dx} 51 M${54.5 + dx} 51 Q${57 + dx} 52 ${59.5 + dx} 51" fill="none" stroke="${lineColor}" stroke-width="0.8" opacity="0.35" stroke-linecap="round"/>`;
+      face += `<path d="M${40.5 + dx} 51 Q${43 + dx} 52 ${45.5 + dx} 51 M${54.5 + dx} 51 Q${57 + dx} 52 ${59.5 + dx} 51" fill="none" stroke="${fc.lineMid}" stroke-width="0.8" stroke-linecap="round"/>`;
     } else if (spec.age === 'older') {
-      face += `<path d="M${36.6 + dx} 45.6 l-2.6 -1.2 M${36.6 + dx} 47.6 l-2.8 0.5 M${63.4 + dx} 45.6 l2.6 -1.2 M${63.4 + dx} 47.6 l2.8 0.5 M${40.5 + dx} 51.2 Q${43 + dx} 52.4 ${45.5 + dx} 51.2 M${54.5 + dx} 51.2 Q${57 + dx} 52.4 ${59.5 + dx} 51.2 M${44 + dx} 53 Q${42.4 + dx} 56 ${44.2 + dx} 58.8 M${56 + dx} 53 Q${57.6 + dx} 56 ${55.8 + dx} 58.8" fill="none" stroke="${lineColor}" stroke-width="0.9" opacity="0.6" stroke-linecap="round"/>`;
+      face += `<path d="M${36.6 + dx} 45.6 l-2.6 -1.2 M${36.6 + dx} 47.6 l-2.8 0.5 M${63.4 + dx} 45.6 l2.6 -1.2 M${63.4 + dx} 47.6 l2.8 0.5 M${40.5 + dx} 51.2 Q${43 + dx} 52.4 ${45.5 + dx} 51.2 M${54.5 + dx} 51.2 Q${57 + dx} 52.4 ${59.5 + dx} 51.2 M${44 + dx} 53 Q${42.4 + dx} 56 ${44.2 + dx} 58.8 M${56 + dx} 53 Q${57.6 + dx} 56 ${55.8 + dx} 58.8" fill="none" stroke="${fc.lineOld}" stroke-width="0.9" stroke-linecap="round"/>`;
     }
-    const must = `<path d="M${43.5 + dx} 54.6 Q${47 + dx} 52.3 ${50 + dx} 53.6 Q${53 + dx} 52.3 ${56.5 + dx} 54.6 Q${55 + dx} 56.4 ${50 + dx} 55.4 Q${45 + dx} 56.4 ${43.5 + dx} 54.6 Z" fill="${hair}"/>`;
-    if (spec.facial === 'stubble') face += `<path d="M30 50 Q31 63 ${50 + dx} 66.5 Q69 63 70 50 Q66 58 ${60 + dx} 59.5 Q${50 + dx} 57 ${40 + dx} 59.5 Q34 58 30 50 Z" fill="${hair}" opacity="0.35"/>`;
+    const must = `<path d="M${43.5 + dx} 54.6 Q${47 + dx} 52.3 ${50 + dx} 53.6 Q${53 + dx} 52.3 ${56.5 + dx} 54.6 Q${55 + dx} 56.4 ${50 + dx} 55.4 Q${45 + dx} 56.4 ${43.5 + dx} 54.6 Z" fill="${fc.facial}"/>`;
+    if (spec.facial === 'stubble') face += `<path d="M30 50 Q31 63 ${50 + dx} 66.5 Q69 63 70 50 Q66 58 ${60 + dx} 59.5 Q${50 + dx} 57 ${40 + dx} 59.5 Q34 58 30 50 Z" fill="${fc.stubble}"/>`;
     if (spec.facial === 'mustache') face += must;
-    if (spec.facial === 'beard') face += `<path d="M28.5 46 Q28 66 ${50 + dx} 69.5 Q72 66 71.5 46 Q69 55 ${63 + dx} 58.5 Q${58 + dx} 61 ${56 + dx} 59.5 Q${50 + dx} 63.5 ${44 + dx} 59.5 Q${42 + dx} 61 ${37 + dx} 58.5 Q31 55 28.5 46 Z" fill="${hair}"/>` + must;
+    if (spec.facial === 'beard') face += `<path d="M28.5 46 Q28 66 ${50 + dx} 69.5 Q72 66 71.5 46 Q69 55 ${63 + dx} 58.5 Q${58 + dx} 61 ${56 + dx} 59.5 Q${50 + dx} 63.5 ${44 + dx} 59.5 Q${42 + dx} 61 ${37 + dx} 58.5 Q31 55 28.5 46 Z" fill="${fc.facial}"/>` + must;
 
-    const brows = `<g class="p-brows" transform="translate(0 ${-1.6 * st.brow})"><path d="M${39.6 + dx} 41.6 Q${43 + dx} 40.2 ${46.4 + dx} 41.6 M${53.6 + dx} 41.6 Q${57 + dx} 40.2 ${60.4 + dx} 41.6" fill="none" stroke="${browColor}" stroke-width="1.4" stroke-linecap="round"/></g>`;
-    const eyes = `<circle class="p-eye-l" cx="${43 + ex}" cy="${47 + ey}" r="2.6" fill="#2A2420"/><circle class="p-eye-r" cx="${57 + ex}" cy="${47 + ey}" r="2.6" fill="#2A2420"/>`;
-    const mouth = `<path class="p-mouth" d="${m.d}" fill="${m.filled ? '#7A3B34' : 'none'}" stroke="#6B4A3A" stroke-width="${m.filled ? 1 : 1.8}" stroke-linecap="round" stroke-linejoin="round"/>`;
+    const brows = `<g class="p-brows" transform="translate(0 ${-1.6 * st.brow})"><path d="M${39.6 + dx} 41.6 Q${43 + dx} 40.2 ${46.4 + dx} 41.6 M${53.6 + dx} 41.6 Q${57 + dx} 40.2 ${60.4 + dx} 41.6" fill="none" stroke="${fc.brow}" stroke-width="1.4" stroke-linecap="round"/></g>`;
+    const eyes = `<circle class="p-eye-l" cx="${43 + ex}" cy="${47 + ey}" r="2.6" fill="${fc.eye}"/><circle class="p-eye-r" cx="${57 + ex}" cy="${47 + ey}" r="2.6" fill="${fc.eye}"/>`;
+    // Skin-coloured halo under the mouth: invisible on bare skin, keeps the mouth separate from a mustache or beard.
+    const halo = `<path class="p-mouth-halo" d="${m.d}" fill="none" stroke="${skin}" stroke-width="${m.filled ? 2.6 : 3.4}" stroke-linecap="round" stroke-linejoin="round"/>`;
+    const mouth = `<path class="p-mouth" data-ink="${fc.mouth}" d="${m.d}" fill="${m.filled ? fc.mouth : 'none'}" stroke="${fc.mouth}" stroke-width="${m.filled ? 1 : 1.8}" stroke-linecap="round" stroke-linejoin="round"/>`;
     let glasses = '';
     if (spec.glasses === 'round') glasses = `<g fill="#FFFFFF" fill-opacity="0.18" stroke="#2F2F33" stroke-width="1.3"><circle cx="${43 + dx}" cy="47" r="5.2"/><circle cx="${57 + dx}" cy="47" r="5.2"/><path d="M${48.2 + dx} 47 Q${50 + dx} 45.6 ${51.8 + dx} 47 M${37.8 + dx} 46 L29 45 M${62.2 + dx} 46 L71 45" fill="none"/></g>`;
     if (spec.glasses === 'square') glasses = `<g fill="#FFFFFF" fill-opacity="0.18" stroke="#2F2F33" stroke-width="1.3"><rect x="${37.6 + dx}" y="42.7" width="10.8" height="8.6" rx="2"/><rect x="${51.6 + dx}" y="42.7" width="10.8" height="8.6" rx="2"/><path d="M${48.4 + dx} 46.5 Q${50 + dx} 45.3 ${51.6 + dx} 46.5 M${37.6 + dx} 46 L29 45 M${62.4 + dx} 46 L71 45" fill="none"/></g>`;
@@ -130,7 +185,7 @@ SRL.people = (function () {
       `<path d="M8 120 C8 90 26 78 50 78 C74 78 92 90 92 120 Z" fill="${shirt}"/>` +
       `<rect x="43" y="60" width="14" height="20" rx="4" fill="${skin}"/>` +
       `<g class="p-head">${behind}<circle cx="50" cy="44" r="22" fill="${skin}"/>${front}` +
-      `<g class="p-face">${face}${brows}${eyes}${mouth}${glasses}</g></g></g></svg>`;
+      `<g class="p-face">${face}${brows}${eyes}${halo}${mouth}${glasses}</g></g></g></svg>`;
   }
 
   /* Live, animatable figure. el = the <svg> element produced by svg(). */
@@ -143,6 +198,7 @@ SRL.people = (function () {
       this.eyeL = el.querySelector('.p-eye-l');
       this.eyeR = el.querySelector('.p-eye-r');
       this.mouthEl = el.querySelector('.p-mouth');
+      this.haloEl = el.querySelector('.p-mouth-halo');
       this.brows = el.querySelector('.p-brows');
       this.s = { gazeX: 0, gazeY: 0, headRot: 0, mouth: 0, smile: 0, brow: 0, bounce: 0, nod: 0 };
       this.render();
@@ -156,7 +212,8 @@ SRL.people = (function () {
       this.eyeR.setAttribute('cx', 57 + dx + s.gazeX); this.eyeR.setAttribute('cy', 47 + s.gazeY);
       const m = mouthPath(dx, s.mouth, s.smile);
       this.mouthEl.setAttribute('d', m.d);
-      this.mouthEl.setAttribute('fill', m.filled ? '#7A3B34' : 'none');
+      if (this.haloEl) { this.haloEl.setAttribute('d', m.d); this.haloEl.setAttribute('stroke-width', m.filled ? 2.6 : 3.4); }
+      this.mouthEl.setAttribute('fill', m.filled ? this.mouthEl.getAttribute('data-ink') : 'none');
       this.mouthEl.setAttribute('stroke-width', m.filled ? 1 : 1.8);
       this.brows.setAttribute('transform', `translate(0 ${-1.6 * s.brow})`);
     }
@@ -200,6 +257,6 @@ SRL.people = (function () {
     return { spec: u, diff };
   }
 
-  return { SKIN, SKIN_ORDER, HAIR_COLORS, HAIR_BY_AGE, HAIR_STYLES, STYLE_LENGTH, DESIGNER_SHIRTS, FACIAL, GLASSES, AGES,
+  return { featureColors, lstar, SKIN, SKIN_ORDER, HAIR_COLORS, HAIR_BY_AGE, HAIR_STYLES, STYLE_LENGTH, DESIGNER_SHIRTS, FACIAL, GLASSES, AGES,
     svg, PersonRig, featureString, foilSpec, makeUnfamiliar };
 })();
