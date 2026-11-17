@@ -138,6 +138,8 @@ SRL.people = (function () {
     }
     return out;
   }
+  // Points on a circle. (Not Array.from(…, fn): Qualtrics' Prototype.js 1.7.1 replaces Array.from and ignores fn.)
+  function ring(cx, cy, r, n) { const out = []; for (let i = 0; i < n; i++) out.push([cx + r * Math.cos(i / (n - 1) * Math.PI * 2), cy + r * Math.sin(i / (n - 1) * Math.PI * 2)]); return out; }
   function rng(seed) { let a = seed >>> 0; return () => { a |= 0; a = (a + 0x6D2B79F5) | 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
   const FRECKLES = (() => { const r = rng(7), out = []; for (let i = 0; i < 34; i++) { const side = i % 2 ? 1 : -1; const ang = r() * Math.PI * 2, rad = Math.sqrt(r()); out.push(i % 6 === 5 ? [side * 3 * r(), 112 + 8 * r(), 'n'] : [side * (26 + 11 * rad * Math.cos(ang)), 117 + 6 * rad * Math.sin(ang), 'c']); } return out; })();
 
@@ -355,7 +357,7 @@ SRL.people = (function () {
         const textured = tex === 'curly' || tex === 'coily';
         const c = cap(3.5, 60, 75, 96); frontPts = c.pts;
         const r = textured ? 19 : 14, by = textured ? 24 : 27;
-        back = `<circle cx="100" cy="${by}" r="${r}" fill="${fill}"/>` + (textured ? `<g fill="${fill}">${bumps(Array.from({ length: 49 }, (_, i) => [100 + r * Math.cos(i / 48 * Math.PI * 2), by + r * Math.sin(i / 48 * Math.PI * 2)]), 3, 3.6)}</g>` : '');
+        back = `<circle cx="100" cy="${by}" r="${r}" fill="${fill}"/>` + (textured ? `<g fill="${fill}">${bumps(ring(100, by, r, 49), 3, 3.6)}</g>` : '');
         front = P(c.pts) + (textured ? B(c.line.slice(3, -3), 2, 3.2) : (lv >= 2 ? hiArc : '')); break;
       }
       case 'braids': case 'locs': {

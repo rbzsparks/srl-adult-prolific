@@ -23,7 +23,9 @@ SRL.util = (function () {
   function levenshtein(a, b) {
     a = a.toLowerCase(); b = b.toLowerCase();
     const m = a.length, n = b.length;
-    const d = Array.from({ length: m + 1 }, (_, i) => [i].concat(new Array(n).fill(0)));
+    // Plain loop, not Array.from(…, fn): Qualtrics loads Prototype.js 1.7.1, whose Array.from ignores the mapping function.
+    const d = [];
+    for (let i = 0; i <= m; i++) d.push([i].concat(new Array(n).fill(0)));
     for (let j = 1; j <= n; j++) d[0][j] = j;
     for (let i = 1; i <= m; i++) for (let j = 1; j <= n; j++) {
       d[i][j] = Math.min(d[i - 1][j] + 1, d[i][j - 1] + 1, d[i - 1][j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));

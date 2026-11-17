@@ -96,6 +96,7 @@ Then open `http://localhost:8000/experiment/index.html?debug=1`. URL parameters:
 | `auto=1` | with `debug=1`: autopilot clicks through the whole study (~3–4 min) |
 | `devsave=1` | with the dev server: write output files into `sample_data/` instead of downloading |
 | `reset=1` | clear the reload marker for this PROLIFIC_PID (otherwise a second visit counts as a reload) |
+| `prototype=1` | load Prototype.js 1.7.1 first, as Qualtrics' classic layouts do, to catch code that breaks under it (run this before every deploy) |
 
 Example full walkthrough: `…/index.html?debug=1&auto=1&devsave=1&PROLIFIC_PID=TEST001&category=close&list=A&reset=1`.
 
@@ -584,7 +585,7 @@ These are recorded, not enforced: the preregistered rules decide.
 - **The NSTE engine path is untested** (§4.5).
 - **Browser testing so far:** the full study was run end to end in the Claude desktop app's Chromium-based browser (autopilot runs, reload tests, layout checks). It has not yet been tried in Firefox or Safari. Safari decodes the MP3 files; OGG is the fallback.
 - **MouseView** is implemented (blur mask + AOI dwell) but was not part of the end-to-end tests.
-- **Prototype.js:** Qualtrics' classic layouts load Prototype.js, whose `Array.prototype.toJSON` makes `JSON.stringify` turn arrays into strings. All of the experiment's serialization goes through `SRL.data.stringify`, which removes it for the call. This was tested by simulating the Prototype patch in the browser, not inside Qualtrics itself.
+- **Prototype.js:** Qualtrics' classic layouts load Prototype.js 1.7.1, which replaces several built-ins with older versions: `Array.from` (ignores a mapping function), `Array.prototype.map / find / every / some / entries / reverse`, `Object.values`, `String.prototype.startsWith / endsWith`. In v2.0.0, `Array.from(…, fn)` crashed the study right after the avatar designer inside Qualtrics (fixed in v2.0.1 with plain loops). Serialization goes through `SRL.data.stringify`, which removes Prototype's `toJSON` for the call. **Before every deploy, run a full autopilot with `prototype=1`** (§2), which loads the real Prototype 1.7.1 first.
 - **The experiment draws over the Qualtrics page** as a full-window overlay (`z-index` max), so Qualtrics theme CSS can't distort it. Qualtrics' own header and footer are hidden underneath until the participant clicks Continue.
 - **Synthetic voices:** ElevenLabs audio is far more natural than the old placeholders, but novel-word pronunciation via inline IPA can vary between takes. It is checked by ear, not automatically. Check ElevenLabs' current terms for how the generated audio may be used and credited in publications.
 - **Gaze direction:** eyes and head are aimed at the actual target, and the object sits below eye level so object looks and partner looks differ. It reads clearly in still frames and the style-sheet preview, but it's worth a look in the pilot.
