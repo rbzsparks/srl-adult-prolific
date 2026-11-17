@@ -42,8 +42,9 @@ experiment/                  ← publish this folder on GitHub Pages
   js/loader.js               loads everything from a base URL and starts the study
   js/main.js                 timeline, sections, reload handling, finishing
   js/screens.js              intro, name, relationship, IOS, contact, duration, audio check, messages
-  js/designer.js             avatar designer
-  js/people.js               parametric figure renderer + animation rig + unfamiliar-avatar rule
+  js/designer.js             avatar designer (6 tabs, 16 sliders) + likeness rating
+  js/people.js               shaded parametric figure renderer + animation rig (gaze, turn, mouth)
+  js/avatar_rules.js         unfamiliar-person rule, natural hair-colour scale, similar styles, foil maker + checks
   js/objects.js              novel objects (12) and recolorable incidental objects (12)
   js/scene.js                animated familiarization scene, AOIs, MouseView option
   js/fillers.js              sliding puzzle; arithmetic verification
@@ -53,7 +54,7 @@ experiment/                  ← publish this folder on GitHub Pages
   js/data.js                 Qualtrics (legacy / NSTE), JSON chunks, DataPipe, local download
   js/progress.js             reload marker (localStorage), leave-page warning
   js/fields.js               THE list of embedded-data fields (shared with the Python tools)
-  stimuli/stimuli.json       scene sets: stranger, foil, object, word (+IPA), incidental type, voice
+  stimuli/stimuli.json       scene sets: stranger + foil feature vectors, foil change, object, word (+IPA), incidental type, voice
   stimuli/svg/               exported SVGs of every stimulus (see §9)
   audio/                     <clip_id>.mp3 + .ogg, audio_manifest.csv (recording script)
 qualtrics/
@@ -67,6 +68,8 @@ tools/
   dev_server.py              local server (also lets debug runs write into sample_data/)
   stimulus_sheet.html        preview every stimulus; "Export SVGs" writes experiment/stimuli/svg/
   scene_preview.html         play any scene in either condition; show the final frame + AOIs
+  designer_preview.html      run the avatar designer + likeness question on their own; shows the unfamiliar person
+  make_foils.html            (re)generate the frozen face-test foils from FOIL_K / FOIL_STEP; checks the 6 foil rules
   build_qsf.py               regenerates qualtrics/survey.qsf from config.js + fields.js
   make_placeholder_audio.py  placeholder TTS (Windows voices) → normalize
   normalize_audio.py         trim / −16 LUFS / limiter / 44.1 kHz mono / MP3 + OGG (rerun on final recordings)
@@ -142,9 +145,9 @@ Example full walkthrough: `…/index.html?debug=1&auto=1&devsave=1&PROLIFIC_PID=
 
 Survey flow in the .qsf:
 
-1. **Embedded Data**: `PROLIFIC_PID`, `STUDY_ID`, `SESSION_ID`, `debug`, `name_label` (from the URL), plus every field the experiment writes (360 fields in total; listed in `qualtrics/embedded_data_fields.txt`).
+1. **Embedded Data**: `PROLIFIC_PID`, `STUDY_ID`, `SESSION_ID`, `debug`, `name_label` (from the URL), plus every field the experiment writes (379 fields in total; listed in `qualtrics/embedded_data_fields.txt`).
 2. **Device check** (JS, before consent): mobile/tablet, no mouse/trackpad, or a screen smaller than 1024 × 650 (either orientation) → message → **End of Survey → redirect to `…/complete?cc=SCREENOUT_CODE`**.
-3. **Consent** (placeholder text, shows the ~17 min estimate). "I do not agree" → "Please return this study on Prolific" (no Next button, no code).
+3. **Consent** (placeholder text, shows the ~20 min estimate). "I do not agree" → "Please return this study on Prolific" (no Next button, no code).
 4. **Randomizer**: present 1 of 6, **evenly present** on. Each element sets `category` (acquaintance / moderate / close) × `list` (A / B).
 5. **Experiment (JS)**: one question whose JS loads the experiment from `BASE_URL`; the Next button is hidden and clicked automatically when the participant finishes.
 6. **Post-test questions**: expected a test? (Yes / No / Not sure), strategy (optional text), 2 experience items with 2 attention checks between them, technical problems (optional).
@@ -195,7 +198,7 @@ fields appear in the data.
 - Study URL: `https://<your>.qualtrics.com/jfe/form/SV_xxx?PROLIFIC_PID={{%PROLIFIC_PID%}}&STUDY_ID={{%STUDY_ID%}}&SESSION_ID={{%SESSION_ID%}}`
 - Device filter: **Desktop only**. Listing text: **"Requires audio (headphones or speakers)."**
 - Completion code: the same `COMPLETION_CODE` as in the .qsf. Screen-out code (device check only): `SCREENOUT_CODE`.
-- Duration estimate shown on the consent page: about 17 min (`ESTIMATED_MINUTES`). Confirm it with the pilot (`total_ms`, `t_*_ms`, and Qualtrics `Duration`), then set pay at or above Prolific's recommended rate.
+- Duration estimate shown on the consent page: about 20 min (`ESTIMATED_MINUTES`; 17 before the v2 designer). Confirm it with the pilot (`total_ms`, `t_*_ms`, and Qualtrics `Duration`), then set pay at or above Prolific's recommended rate.
 
 ## 6. Configuration and [DECISION] flags
 
@@ -207,7 +210,7 @@ All in `experiment/config.js`.
 | `COMPLETION_CODE`, `SCREENOUT_CODE` | placeholders | also set in the .qsf redirects (rebuild with `--completion-code` / `--screenout-code`) |
 | `DATAPIPE.EXPERIMENT_ID` | placeholder | backup is skipped while it's a placeholder or in debug mode |
 | `SURPRISE_TEST` | `true` | `false` adds "Afterwards, we will test your memory…" to the scene instructions; recorded as `surprise_test` |
-| `SHOW_NAME_LABEL` | `false` | `false` (the default since v1.2.1) hides the name text beneath the known / unfamiliar person in every scene; `true` shows it (the name is still used in the setup questions and scene instructions). Override per participant with `name_label=0/1`, from the URL or a Qualtrics embedded field (§8). Recorded as `name_label_shown` |
+| `SHOW_NAME_LABEL` | `true` | `true` (the default again since v2.0.0) shows the name text beneath the known / unfamiliar person in every scene; `false` hides it (the name is still used in the setup questions and scene instructions). Override per participant with `name_label=0/1`, from the URL or a Qualtrics embedded field (§8). Recorded as `name_label_shown` |
 | `MOUSEVIEW` | `false` | blur-except-cursor spotlight + AOI dwell (`dwell_*_ms` in the JSON backup). Lightly tested only |
 | `TEST_BLOCK_ORDER_MODE` | `'fixed'` | fixed `word → face → incid`; `'counterbalanced'` = random of the 6 orders; recorded as `test_block_order` |
 | `CONFIDENCE_RATINGS` | `false` | 1–4 after each test trial (JSON backup only) |
@@ -215,6 +218,8 @@ All in `experiment/config.js`.
 | `TIMING.*` | spec values | stranger entry 600 ms; response 900 ms; SPACE enabled 1 s after the label audio ends; auto-advance 15 s after it ends; ISI 500 ms; fillers 30 s / 90 s |
 | `DEBUG_TIMING` | fillers 15 s | applied with `debug=1` |
 | `DEVICE` | 1024 × 650 screen; window prompt below 1000 × 600 | small windows get a "please maximize" prompt, never a rejection |
+| `AVATAR_UNFAM_K`, `AVATAR_UNFAM_K_BALD_NO_FACIAL_HAIR`, `AVATAR_UNFAM_STEP`, `AVATAR_UNFAM_COLOUR_MAX_STEPS` | 4, 5, 0.35, 2 | unfamiliar-person rule (§9 People) |
+| `FOIL_K`, `FOIL_STEP` | 4, 0.35 | read only by `tools/make_foils.html`; foils are frozen in `stimuli.json` (§9 People) |
 | `UNFAMILIAR_NAMES` | Jordan, Taylor, Casey, Morgan, Riley, Avery, Quinn, Jamie (+4 spares) | first one that isn't a near-match of the typed name |
 | `CATEGORIES`, `NAME_INSTRUCTION`, `FAMILY_TITLES` | from UPDATES_v2 | prompt text per category; titles that trigger the "first name, not a title" flag |
 
@@ -232,7 +237,8 @@ Inside the experiment block (Qualtrics handles consent, post-test, demographics 
 | 4 | IOS (7 pictorial options) | `t_setup_ms` |
 | 5 | Contact frequency (6 options) | `t_setup_ms` |
 | 6 | Relationship duration (5 options) | `t_setup_ms` |
-| 7 | Avatar designer: "Make an avatar that looks like [name]" | `t_designer_ms` |
+| 7 | Avatar designer: "Make an avatar that looks like [name]" (6 tabs: Skin → Face → Eyes → Nose & mouth → Hair → Extras; starts from a neutral face; "Reset this section"; no randomize) | `t_designer_ms`, `t_designer_<tab>_ms` |
+| 7b | Likeness: "How much does this avatar look like [name]?" (1–7) | `t_designer_ms` |
 | 8 | Sound check: "window", then "garden" on a second attempt. Case and spaces ignored; one letter off accepted | `t_audio_check_ms` |
 | 9 | Filler 1: 3 × 3 sliding puzzle, fixed 30 s (a new puzzle appears if solved early) | `t_filler1_ms` |
 | 10 | Scene instructions (surprise framing) + 12 scenes | `t_fam_ms` |
@@ -242,25 +248,25 @@ Inside the experiment block (Qualtrics handles consent, post-test, demographics 
 
 **Scene timeline** (identical in both conditions; only the right-hand avatar and its name differ):
 
-1. The other person is on screen. By default no name is shown; with `SHOW_NAME_LABEL: true` or `name_label=1`, their name appears beneath them. The stranger slides in from the left (600 ms, small walking bob) and the other person looks at them.
+1. The other person is on screen, their name beneath them (`SHOW_NAME_LABEL`, default shown; `name_label=0` hides it). Both figures are turned three-quarters toward each other. The novel object sits on a low table between them, below eye level, so a look at the object reads differently from a look at the partner. The stranger slides in from the left (600 ms, small walking bob) and the other person looks at them.
 2. **Greeting audio**: "Hi! Good to see you!" The stranger's mouth is amplitude-driven, with a slight head bob.
 3. **Response** (900 ms): the other person smiles, raises their eyebrows, tilts their head and does a small happy bounce.
 4. **Label audio**: "Look! It's a *bosa*! A *bosa*!"
-   - On "Look!": the stranger's eyes and head turn to the object, and the object slides forward with a 1.05× pulse (300 ms).
+   - On "Look!": the stranger looks down at the object (eyes aimed at it, upper lids lowered, head tilted about 9° toward it), and the object slides forward with a 1.05× pulse (300 ms).
    - 300 ms later, the other person's eyes follow (joint attention).
-   - On "It's a *bosa*!": the stranger looks back at the other person.
+   - On "It's a *bosa*!": the stranger looks back at the other person (head level, eyes straight across).
    - On "A *bosa*!": the stranger looks back at the object.
    - The three segment onsets are found **at runtime** from the clip's two longest pauses, so new recordings need no timing files. `label_segment_source` records `pauses`, or `proportional_fallback` if fewer than two pauses were found.
 5. The other person nods twice while smiling at the object. In the final frame both look at the object.
 6. "Press SPACE to continue" appears **1 s after the label audio ends**. **`view_ms` = keypress time − label-audio end.** The scene auto-advances 15 s after the label audio ends (`timed_out = 1`). Then a 500 ms blank.
 
 **Measured in debug runs** (placeholder audio, fillers shortened): one scene ≈ 7.6–8.6 s with an immediate keypress.
-The real-length experiment block is about 3 min setup + 1 min designer + 0.5 min sound check + 0.5 min puzzle +
-2–4 min scenes + 1.5 min arithmetic + 3–4 min tests ≈ 11.5–14.5 min. With consent and post-test, about 15–17 min.
+The real-length experiment block is about 3 min setup + 3–5 min designer and likeness (v2) + 0.5 min sound check + 0.5 min puzzle +
+2–4 min scenes + 1.5 min arithmetic + 3–4 min tests ≈ 13.5–18.5 min. With consent and post-test, about 18–21 min.
 **Confirm with the pilot.**
 
 **Final-frame AOIs** (stage coordinates, 0–1, `[x0, y0, x1, y1]`; also stored in the JSON backup as `aoi_norm`):
-`stranger_face [0.125, 0.4192, 0.275, 0.6688]`, `object [0.425, 0.4192, 0.575, 0.6592]`, `other_face [0.725, 0.4192, 0.875, 0.6688]`, `incidental [0.788, 0.1344, 0.872, 0.2656]`.
+`stranger_face [0.12, 0.432, 0.29, 0.7456]`, `object [0.435, 0.6192, 0.565, 0.8272]`, `other_face [0.71, 0.432, 0.88, 0.7456]`, `incidental [0.788, 0.1344, 0.872, 0.2656]`.
 
 **Stage scaling.** Every screen is drawn on a fixed 1000 × 625 logical canvas scaled to fit the window (letterboxed), so layout and AOIs are the same on every screen size.
 
@@ -286,7 +292,7 @@ The real-length experiment block is about 3 min setup + 1 min designer + 0.5 min
 
 ## 9. Stimuli
 
-`experiment/stimuli/stimuli.json` is the manifest and single source of truth (scene set → stranger spec, foil spec,
+`experiment/stimuli/stimuli.json` is the manifest and single source of truth (scene set → stranger and foil feature vectors, foil change,
 object id, word, IPA, incidental type, voice). SVG exports of every stimulus are in `experiment/stimuli/svg/`
 (`tools/stimulus_sheet.html` → "Export SVGs"). Runtime figures are drawn in code from the same renderer, so the files are for reference and figures.
 
@@ -328,36 +334,31 @@ There are 12 types, each in exactly one scene: mug, lamp, clock, bowl, picture f
 - **Recognizability check:** after a first visual check, the new ones that looked like familiar things were redrawn (a party hat, a ring-stacking toy, a flower, a hand fan, an hourglass).
 - **Still to do:** a quick naming check in the pilot ("does this look like anything you know?") is worthwhile.
 
-### People
+### People (v2 avatars)
 
-- **Renderer:** a parametric bust renderer reproduces the reference style (rounded shoulders, round head, simple hair shapes, dot eyes). It adds small eyebrows, which are needed for the eyebrow-raise response.
-- **Feature contrast across skin tones:** facial-feature colours are computed from the skin they sit on (CIELAB lightness difference, dL*), so no feature is masked on darker or lighter skin (`featureColors` in `experiment/js/people.js`):
-  - mouth (line and open interior): dL* = 24 on every skin. This is the same for everyone, and is about the maximum the darkest tone (S6, L* 28) allows.
-  - eyes: near-black on every skin (dL* ≥ 23).
-  - brows: hair-based colour, pushed lighter or darker (whichever is the smaller change) until dL* ≥ 25.
-  - beard / mustache: the hair colour pushed the same way until dL* ≥ 22. Stubble is a solid tint at dL* = 18. A skin-coloured halo under the mouth keeps it separate from a dark mustache.
-  - age lines: dL* = 10 (middle-aged) and 16 (older) on every skin, so age cues are equally visible.
-  - Head hair is unchanged. Previews: `sample_data/_preview/feature_contrast_*.png`.
-- **Facing:** in scenes, the stranger faces right and the other person faces left; the eye dots and mouth are offset toward the other person. Test faces are front-facing.
-- **Strangers:** 12 preset strangers and 12 matched foils.
-  - Each foil keeps its stranger's shirt, hair-length category, glasses, facial hair and apparent age, and has a skin tone nudged 35% toward the neighbouring shade.
-  - Each foil differs in **hair color and hair style** (within the length category).
-  - If the face test is too easy in the pilot, make foils closer by giving each foil only one difference: edit `foil` in `stimuli.json`.
-- **Designer features** (at most 6 options each):
-  - apparent age (young / middle-aged / older)
-  - skin (6)
-  - hair length (3)
-  - hair style (3–4 within the length)
-  - hair color (5–6, age-appropriate; gray and white only for middle-aged and older adults)
-  - facial hair (4)
-  - glasses (3)
-  - shirt (6)
-  - Older adults get eye and smile lines; middle-aged adults get faint under-eye lines.
-- **Shirt palettes:** the designer's shirt colors and all 12 stranger shirt colors are disjoint palettes.
-- **Unfamiliar avatar rule:**
-  - **Copies** apparent age, skin tone, hair-length category, and facial hair (presence and type). In this style, hair length and facial hair carry gender presentation, so there is no separate gender control.
-  - **Differs on exactly 3** of {hair color (age-appropriate), hair style (same length), glasses (toggled), shirt color (designer palette)}, chosen at random.
-  - **Recorded:** `known_avatar`, `unfamiliar_avatar` (full feature strings) and `avatar_diff_features`.
+Designed and reviewed in `design/avatar_style_sheet.html` (shading levels, rules, strangers, foils, scene preview).
+
+- **Renderer** (`js/people.js`): shaded parametric busts ("Level 2": soft light from the upper left, eye and lip highlights), one renderer for the designer, scenes and face test. A figure's static part is computed once and cached; animation redraws only eyes, brows and mouth.
+- **Feature contrast across skin tones:** every facial feature is coloured relative to the skin it sits on (CIELAB lightness difference, dL*), so nothing is masked on darker or lighter skin: mouth seam dL* 24, eyes near-black, brows ≥ 25 and facial hair ≥ 22 (dark or brown hair is only ever pushed darker), age lines 10 / 13, stubble 6. A skin-coloured halo keeps the mouth separate from a dark mustache.
+- **Animation:** gaze (eyes aimed at the actual target; upper lids lower when looking down), head roll and nod, a three-quarter turn toward the partner (features shift ~9% of face width; far eye and far side narrow), amplitude-driven mouth, smile, brow raise, bounce. Test faces are front-facing.
+- **Designer** (`js/designer.js`): 6 tabs in a fixed order, 16 sliders:
+  - Skin: 2-D picker (lightness × undertone: cool, neutral, warm, olive)
+  - Face: width, jaw / chin; age (young / middle-aged / older)
+  - Eyes: lid type (visible crease / hooded / monolid; eye opening identical for all three), size, tilt, spacing, iris colour (6), brow thickness, brow shape
+  - Nose & mouth: nose width, length, lip fullness, mouth width
+  - Hair: texture (straight / wavy / curly / coily), length (short / medium / long), style within those, colour (continuous natural scale), grey (range depends on age)
+  - Extras: head covering (none / hijab / turban, with colour), facial hair (5), glasses (3), freckles, shirt colour
+  - Slider ranges cover ordinary adult variation only; no option is tied to skin tone or group.
+- **Shirt palettes:** the designer's shirt colours and the stranger shirt colours are disjoint palettes.
+- **Unfamiliar person** (`js/avatar_rules.js`, seeded by the participant `seed`):
+  - **Copies** skin lightness and undertone, age and grey, lid type, iris colour, freckles, hair texture and length, head covering, facial hair present / absent.
+  - **Moves** `AVATAR_UNFAM_K` = 4 random identity sliders (face width, jaw, eye size / tilt / spacing, nose width / length, lip fullness, mouth width, brow thickness / shape) by ±`AVATAR_UNFAM_STEP` = 0.35, flipping direction at a bound.
+  - **3 categorical changes**, each visible at scene size: a hair style from the similar-style list (same length and texture; long straight / wavy hair may go to shoulder length), a different shirt colour (always), and either a hair-colour change of 1–2 steps on the natural scale (black – dark brown – brown – light brown – blonde, auburn next to brown; never when grey would hide it) or glasses added / removed.
+  - Special cases: head covering → covering colour + shirt + glasses; bald with facial hair → facial-hair style (stays present) + shirt + glasses; bald without facial hair → shirt + glasses + a 5th identity slider.
+- **Strangers and foils:** 12 strangers (`stimuli.json`) keep the IDs, gender presentation, ages and skin-tone bands of v1, so the matched pairs, list balancing and recorded voices are unchanged. They span all three lid types and all four hair textures; none wears a head covering.
+  - Each foil keeps its stranger's group features, clothing and glasses, moves `FOIL_K` = 4 identity sliders by `FOIL_STEP` = 0.35, and makes one hand-picked hair change (`foil_change`): a similar style or a one-step colour change.
+  - Foil rules (checked by `tools/make_foils.html`, which refuses to save otherwise): every new style or colour is also worn by a stranger; each target style is used by at most 2 foils; 6 style and 6 colour changes, 3 of each per half and per gender; style targets from the similar-style list; colour changes one step and never on grey hair.
+  - Foils are frozen in the file so every participant sees the same faces. To change difficulty: edit `FOIL_STEP`, open `tools/make_foils.html` through the dev server, save, bump `VERSION`, redeploy.
 
 ## 10. Audio
 
@@ -436,7 +437,7 @@ python analysis/reshape_qualtrics.py export.csv -o long.csv
 |---|---|
 | `PROLIFIC_PID`, `STUDY_ID`, `SESSION_ID` | from the Prolific URL |
 | `debug` | `1` if the URL had `debug=1` (set by the URL) |
-| `name_label` | `0`/`1` if set by the URL or survey flow (blank = use `SHOW_NAME_LABEL`, default hidden) |
+| `name_label` | `0`/`1` if set by the URL or survey flow (blank = use `SHOW_NAME_LABEL`, default shown) |
 | `category`, `list` | set by the Randomizer (also written back by the experiment) |
 | `device_ok`, `device_reason`, `device_screen`, `device_window` | device check before consent (`reason`: mobile / no_mouse / small_screen) |
 | `consent` | 1 = agree, 2 = do not agree |
@@ -462,8 +463,12 @@ python analysis/reshape_qualtrics.py export.csv -o long.csv
 | `name_length` | characters in the typed name (the name itself is never stored) |
 | `name_flagged_title` | 1 if the first entry matched a family title (e.g. "Mom") |
 | `name_suspect` | 1 if the name looks like a non-name (no vowels, "asdf", repeated letters…) |
-| `known_avatar`, `unfamiliar_avatar` | feature strings `age=;skin=;hairLen=;hairStyle=;hairColor=;facial=;glasses=;shirt=` |
-| `avatar_diff_features` | the 3 features where the unfamiliar avatar differs, `|`-separated |
+| `known_avatar`, `unfamiliar_avatar` | feature vectors `key=value;…` in the order of `FEATURE_KEYS` (js/people.js); sliders 0–1 to 2 decimals. `reshape_qualtrics.py` unpacks them into `known_<key>` / `unfam_<key>` columns |
+| `unfam_changes` | the unfamiliar person's categorical changes, `feature:from>to`, `|`-separated |
+| `unfam_k`, `unfam_identity_dist` | identity sliders moved (4, or 5 when bald without facial hair) and their Euclidean distance |
+| `likeness_rating`, `likeness_rt_ms` | "How much does this avatar look like [name]?" 1–7, and response time |
+| `designer_edits`, `designer_resets`, `designer_tabs_visited` | designer edits (a released slider or a clicked option), section resets, sections opened (of 6) |
+| `designer_edits_<tab>`, `t_designer_<tab>_ms` | per section: skin, face, eyes, nosemouth, hair, extras |
 | `unfamiliar_name` | name shown under the unfamiliar person |
 | `audio_check_pass` | 1 if either check word was typed correctly (one letter off accepted) |
 | `audio_check_attempts` | 1–2 |
@@ -565,9 +570,10 @@ These are recorded, not enforced: the preregistered rules decide.
 - [ ] **DataPipe** experiment ID + OSF component (§11).
 - [ ] Confirm **custom JavaScript** is enabled on Harvard's Qualtrics (§4.1).
 - [ ] **Approve the ElevenLabs audio**: listen to every clip in `tools/audio_review.html`, especially the 12 novel words from both stranger and narrator (§10.1).
+- [ ] **Avatar review**: as suggested in the style sheet, have a few people from the communities represented look at the designer (`tools/designer_preview.html`) and the strangers (`tools/stimulus_sheet.html`) before launch.
 - [ ] **Payment**, after the pilot measures the median duration.
 - [ ] **Pilot (~20 participants)**: check that face and word accuracy fall around 65–75% and incidental accuracy is above 25% but not near ceiling. Tuning knobs:
-  - foil similarity (`stimuli.json`)
+  - foil similarity (`FOIL_STEP` in config.js → `tools/make_foils.html` → redeploy)
   - filler length (`TIMING.FILLER1/2`)
   - auto-advance time
   - number of word tokens in the label clip
@@ -581,4 +587,6 @@ These are recorded, not enforced: the preregistered rules decide.
 - **Prototype.js:** Qualtrics' classic layouts load Prototype.js, whose `Array.prototype.toJSON` makes `JSON.stringify` turn arrays into strings. All of the experiment's serialization goes through `SRL.data.stringify`, which removes it for the call. This was tested by simulating the Prototype patch in the browser, not inside Qualtrics itself.
 - **The experiment draws over the Qualtrics page** as a full-window overlay (`z-index` max), so Qualtrics theme CSS can't distort it. Qualtrics' own header and footer are hidden underneath until the participant clicks Continue.
 - **Synthetic voices:** ElevenLabs audio is far more natural than the old placeholders, but novel-word pronunciation via inline IPA can vary between takes. It is checked by ear, not automatically. Check ElevenLabs' current terms for how the generated audio may be used and credited in publications.
-- **Gaze direction** in this flat style is carried by the eye-dot offset plus a ±5° head tilt. It reads clearly in a still frame, but it's worth a look in the pilot.
+- **Gaze direction:** eyes and head are aimed at the actual target, and the object sits below eye level so object looks and partner looks differ. It reads clearly in still frames and the style-sheet preview, but it's worth a look in the pilot.
+- **Designer duration:** the v2 designer is longer than v1; the 20-minute estimate is a guess until the pilot (`t_designer_ms`, `t_designer_<tab>_ms`).
+- **v2 has not been loaded from GitHub Pages yet** (it was built on the `avatar-v2` branch and tested locally); run `tools/remote_load_test.html` after merging and deploying.

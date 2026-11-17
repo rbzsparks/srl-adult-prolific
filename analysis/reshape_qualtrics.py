@@ -9,6 +9,8 @@ familiarization rows (phase = familiarization) and test rows (phase = test), plu
 Works with either export option ("Use numeric values" or "Use choice text"), with the 3-row Qualtrics header
 (names / question text / ImportId JSON) or a plain 1-row header, and with legacy or NSTE (__js_-prefixed) fields.
 Also reassembles full_data_json_1..N and checks it against the wide fields (prints mismatches).
+The known and unfamiliar feature vectors (known_avatar / unfamiliar_avatar, "key=value;...") are unpacked into one
+column per feature: known_<key> and unfam_<key> (keys from FEATURE_KEYS in experiment/js/people.js).
 
 Usage:
     python analysis/reshape_qualtrics.py qualtrics_export.csv -o long.csv [--include-incomplete] [--include-debug]
@@ -21,6 +23,27 @@ import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 FIELDS_JS = os.path.join(HERE, '..', 'experiment', 'js', 'fields.js')
+PEOPLE_JS = os.path.join(HERE, '..', 'experiment', 'js', 'people.js')
+
+
+def load_feature_keys():
+    import re
+    txt = open(PEOPLE_JS, encoding='utf-8').read()
+    m = re.search(r"const FEATURE_KEYS = \[(.*?)\];", txt, re.S)
+    return re.findall(r"'(\w+)'", m.group(1))
+
+
+FEATURE_KEYS = load_feature_keys()
+FEATURE_COLS = ['known_' + k for k in FEATURE_KEYS] + ['unfam_' + k for k in FEATURE_KEYS]
+
+
+def unpack_vec(s, prefix):
+    out = {}
+    for part in (s or '').split(';'):
+        if '=' in part:
+            k, v = part.split('=', 1)
+            out[prefix + k] = v
+    return out
 
 
 def load_fields():
@@ -49,7 +72,8 @@ LONG_COLS = [
     # participant level
     'prolific_pid', 'study_id', 'session_id', 'response_id', 'category', 'list', 'test_block_order', 'surprise_test', 'name_label_shown', 'mouseview_on',
     'relationship_type', 'is_kin', 'ios', 'contact_freq', 'duration', 'name_length', 'name_flagged_title', 'name_suspect',
-    'known_avatar', 'unfamiliar_avatar', 'avatar_diff_features', 'unfamiliar_name', 'audio_check_pass',
+    'known_avatar', 'unfamiliar_avatar', 'unfam_changes', 'unfam_k', 'unfam_identity_dist', 'unfamiliar_name',
+    'likeness_rating', 'likeness_rt_ms', 'designer_edits', 'designer_resets', 'designer_tabs_visited', 't_designer_ms', 'audio_check_pass',
     'filler1_solved', 'filler1_moves', 'filler2_accuracy', 'fam_fast_advance_count', 'fam_timeout_count',
     'fullscreen_exits', 'tab_switches', 'reload_pre_fam', 'reloaded_post_fam', 'browser', 'screen_w', 'screen_h', 'total_ms',
     'expected_test', 'strategy', 'attention_check_1', 'attention_check_2', 'age', 'gender',
@@ -58,10 +82,11 @@ LONG_COLS = [
     'viewing_time_ms', 'timed_out', 'label_audio_ms',
     'test_type', 'target_id', 'foil_ids', 'target_position', 'response_id_choice', 'correct', 'rt_ms',
     'k', 'f'
-]
+] + FEATURE_COLS
 PCOLS_FROM_ED = ['category', 'list', 'test_block_order', 'surprise_test', 'name_label_shown', 'mouseview_on', 'relationship_type', 'is_kin', 'ios',
                  'contact_freq', 'duration', 'name_length', 'name_flagged_title', 'name_suspect', 'known_avatar', 'unfamiliar_avatar',
-                 'avatar_diff_features', 'unfamiliar_name', 'audio_check_pass', 'filler1_solved', 'filler1_moves', 'filler2_accuracy',
+                 'unfam_changes', 'unfam_k', 'unfam_identity_dist', 'unfamiliar_name', 'likeness_rating', 'likeness_rt_ms',
+                 'designer_edits', 'designer_resets', 'designer_tabs_visited', 't_designer_ms', 'audio_check_pass', 'filler1_solved', 'filler1_moves', 'filler2_accuracy',
                  'fam_fast_advance_count', 'fam_timeout_count', 'fullscreen_exits', 'tab_switches', 'reload_pre_fam',
                  'reloaded_post_fam', 'browser', 'screen_w', 'screen_h', 'total_ms']
 NATIVE = {'prolific_pid': 'PROLIFIC_PID', 'study_id': 'STUDY_ID', 'session_id': 'SESSION_ID', 'response_id': 'ResponseId',
@@ -86,6 +111,8 @@ def reshape(recs, F, include_incomplete=False, include_debug=False):
         if d.get('reloaded_post_fam') == '1' and not include_incomplete:
             continue
         base = {c: d.get(c, '') for c in PCOLS_FROM_ED}
+        base.update(unpack_vec(d.get('known_avatar'), 'known_'))
+        base.update(unpack_vec(d.get('unfamiliar_avatar'), 'unfam_'))
         for c, src in NATIVE.items():
             base[c] = d.get(src, '')
         ios = to_int(d.get('ios'))

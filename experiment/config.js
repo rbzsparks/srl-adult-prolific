@@ -3,7 +3,7 @@
  * Edit this file, push to GitHub Pages, and the live study picks it up.
  * ===================================================================== */
 window.SRL_CONFIG = {
-  VERSION: '1.2.2',
+  VERSION: '2.0.0',
 
   /* ---------- Qualtrics ---------- */
   // 'legacy' = classic layouts (Flat / Modern / Classic): Qualtrics.SurveyEngine.setEmbeddedData
@@ -27,7 +27,7 @@ window.SRL_CONFIG = {
 
   /* ---------- [DECISION] flags ---------- */
   SURPRISE_TEST: true,          // true = incidental learning (no mention of a memory test)
-  SHOW_NAME_LABEL: false,       // true = the known/unfamiliar person's name is shown as text beneath them in every scene.
+  SHOW_NAME_LABEL: true,        // true = the known/unfamiliar person's name is shown as text beneath them in every scene.
                                 // Per-participant override: URL / Qualtrics embedded field name_label=1 (show) or 0 (hide).
                                 // Recorded as name_label_shown.
   MOUSEVIEW: false,             // blur-except-cursor spotlight + AOI dwell logging during scenes
@@ -90,7 +90,17 @@ window.SRL_CONFIG = {
 
   /* ---------- Unfamiliar person ---------- */
   UNFAMILIAR_NAMES: ['Jordan', 'Taylor', 'Casey', 'Morgan', 'Riley', 'Avery', 'Quinn', 'Jamie', 'Rowan', 'Emery', 'Reese', 'Sasha'],
-  UNFAMILIAR_DIFF_COUNT: 3,     // differs from the known avatar on exactly this many of the 4 free features
+  // The unfamiliar person copies the group features and differs as an individual (rules in js/avatar_rules.js).
+  AVATAR_UNFAM_K: 4,                       // identity sliders moved
+  AVATAR_UNFAM_K_BALD_NO_FACIAL_HAIR: 5,   // identity sliders moved when the known person is bald with no facial hair
+  AVATAR_UNFAM_STEP: 0.35,                 // move per identity slider (sliders run 0-1)
+  AVATAR_UNFAM_COLOUR_MAX_STEPS: 2,        // largest hair-colour change on the natural scale
+
+  /* ---------- Face-test foils ----------
+   * Foils are FIXED in stimuli/stimuli.json. These two values are read by tools/make_foils.html when the foils are
+   * (re)generated; changing them here does nothing until the foils are regenerated and the stimulus file redeployed. */
+  FOIL_K: 4,                               // identity sliders moved per foil
+  FOIL_STEP: 0.35,                         // foil difficulty: move per identity slider
 
   /* ---------- Audio check ---------- */
   AUDIO_CHECK_WORDS: ['window', 'garden'],
@@ -100,5 +110,5 @@ window.SRL_CONFIG = {
   STIMULI_JSON: 'stimuli/stimuli.json',
 
   /* ---------- Copy ---------- */
-  ESTIMATED_MINUTES: 17
+  ESTIMATED_MINUTES: 20
 };

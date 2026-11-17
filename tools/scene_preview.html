@@ -28,6 +28,7 @@
 <script src="../experiment/config.js"></script>
 <script src="../experiment/js/util.js"></script>
 <script src="../experiment/js/people.js"></script>
+<script src="../experiment/js/avatar_rules.js"></script>
 <script src="../experiment/js/objects.js"></script>
 <script src="../experiment/js/stimuli.js"></script>
 <script src="../experiment/js/audio.js"></script>
@@ -41,8 +42,8 @@
   const design = SRL.stimuli.design('A');
   const sel = document.getElementById('set');
   design.sets.forEach((s) => sel.add(new Option(`${s.id} (${s.word}, ${s.incidental})`, s.id)));
-  const known = { age: 'young', skin: 'S2', hairStyle: 'long_straight', hairColor: 'darkbrown', facial: 'none', glasses: 'round', shirt: 'teal' };
-  const unf = SRL.people.makeUnfamiliar(known, 3).spec;
+  const known = Object.assign({}, SRL.people.NEUTRAL, { age: 'young', skinL: 0.35, skinU: 0.6, lid: 'mono', texture: 'straight', length: 'medium', hairStyle: 'bangs', hairColor: 0, glasses: 'round', shirt: 'navy' });
+  const unf = SRL.avatarRules.unfamiliar(known, 12345, SRL_CONFIG).spec;
   const wrap = document.getElementById('wrap'), log = document.getElementById('log');
   const ctx = () => ({ knownSpec: known, unfamiliarSpec: unf, knownName: document.getElementById('nm').value, unfamiliarName: 'Jordan',
     timing: Object.assign({}, SRL_CONFIG.TIMING, { ISI: 0 }), debug: false, auto: false, list: 'A', showName: document.getElementById('shownm').checked });

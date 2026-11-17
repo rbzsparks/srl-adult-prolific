@@ -5,7 +5,11 @@ window.SRL_FIELDS = {
   "participant": [
     "category", "list", "relationship_type", "is_kin", "ios", "contact_freq", "duration",
     "name_length", "name_flagged_title", "name_suspect",
-    "known_avatar", "unfamiliar_avatar", "avatar_diff_features", "unfamiliar_name",
+    "known_avatar", "unfamiliar_avatar", "unfam_changes", "unfam_k", "unfam_identity_dist", "unfamiliar_name",
+    "likeness_rating", "likeness_rt_ms",
+    "designer_edits", "designer_resets", "designer_tabs_visited",
+    "designer_edits_skin", "designer_edits_face", "designer_edits_eyes", "designer_edits_nosemouth", "designer_edits_hair", "designer_edits_extras",
+    "t_designer_skin_ms", "t_designer_face_ms", "t_designer_eyes_ms", "t_designer_nosemouth_ms", "t_designer_hair_ms", "t_designer_extras_ms",
     "audio_check_pass", "audio_check_attempts",
     "filler1_solved", "filler1_moves", "filler1_time_to_solve_ms", "filler1_n_solved",
     "filler2_accuracy", "filler2_n",

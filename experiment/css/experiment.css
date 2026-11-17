@@ -53,20 +53,56 @@ html.srl-active, html.srl-active body { overflow: hidden !important; }
 .srl-timer > div { height: 100%; width: 100%; background: #2F5DA8; }
 
 /* Designer */
-.srl-designer { padding: 22px 34px; }
-.srl-designer h1 { font-size: 24px; margin-bottom: 8px; }
-.dz-wrap { display: flex; gap: 24px; align-items: flex-start; }
-.dz-preview { width: 300px; height: 360px; background: #F1EBE1; border-radius: 14px; flex: none; display: flex; align-items: flex-end; justify-content: center; overflow: hidden; }
-.dz-controls { flex: 1; display: flex; flex-direction: column; gap: 5px; }
-.dz-row { display: flex; align-items: center; gap: 7px; min-height: 40px; }
-.dz-row-tall { min-height: 60px; }
-.dz-lab { width: 100px; font-size: 15px; color: #555; flex: none; }
-.dz-sw { width: 34px; height: 34px; border-radius: 50%; border: 2px solid #fff; box-shadow: 0 0 0 1.5px #CFC6B8; cursor: pointer; padding: 0; }
+.srl-designer { padding: 16px 30px 18px; }
+.srl-designer h1 { font-size: 23px; margin-bottom: 2px; }
+.dz-intro { font-size: 15px; color: #555; margin: 0 0 10px !important; }
+.dz-wrap { display: flex; gap: 20px; align-items: flex-start; }
+.dz-preview { width: 290px; height: 348px; background: #F1EBE1; border-radius: 14px; flex: none; display: flex; align-items: flex-end; justify-content: center; overflow: hidden; }
+.dz-preview svg { display: block; }
+.dz-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 8px; }
+.dz-tabs { display: flex; gap: 4px; border-bottom: 2px solid #E3DACB; }
+.dz-tab { font: inherit; font-size: 14px; padding: 7px 10px; border: 0; border-radius: 8px 8px 0 0; background: transparent; color: #555; cursor: pointer; margin-bottom: -2px; border-bottom: 2px solid transparent; }
+.dz-tab.seen { color: #222; }
+.dz-tab.sel { color: #2F5DA8; font-weight: 650; border-bottom-color: #2F5DA8; background: #EEF3FB; }
+.dz-panel { display: flex; flex-direction: column; gap: 4px; min-height: 380px; }
+.dz-row { display: flex; align-items: center; gap: 8px; min-height: 36px; }
+.dz-row-tall { min-height: 64px; }
+.dz-lab { width: 118px; font-size: 14px; color: #444; flex: none; font-weight: 600; }
+.dz-end { width: 92px; font-size: 12px; color: #777; flex: none; line-height: 1.15; }
+.dz-end:last-child { text-align: left; }
+.dz-row .dz-end:nth-of-type(2) { text-align: right; }
+.dz-range { flex: 1; min-width: 0; accent-color: #2F5DA8; height: 22px; }
+.dz-haircol { -webkit-appearance: none; appearance: none; height: 12px; border-radius: 6px; }
+.dz-haircol::-webkit-slider-thumb { -webkit-appearance: none; width: 20px; height: 20px; border-radius: 50%; background: #fff; border: 2px solid #2F5DA8; }
+.dz-haircol::-moz-range-thumb { width: 18px; height: 18px; border-radius: 50%; background: #fff; border: 2px solid #2F5DA8; }
+.dz-opts { display: flex; flex-wrap: wrap; gap: 6px; }
+.dz-sw { width: 30px; height: 30px; border-radius: 50%; border: 2px solid #fff; box-shadow: 0 0 0 1.5px #CFC6B8; cursor: pointer; padding: 0; }
 .dz-sw.sel { box-shadow: 0 0 0 3px #2F5DA8; }
-.dz-tb { font: inherit; font-size: 15px; padding: 6px 12px; border-radius: 8px; border: 1.5px solid #D8CFC1; background: #fff; cursor: pointer; }
+.dz-tb { font: inherit; font-size: 14px; padding: 5px 10px; border-radius: 8px; border: 1.5px solid #D8CFC1; background: #fff; cursor: pointer; }
 .dz-tb.sel { border-color: #2F5DA8; background: #EEF3FB; font-weight: 600; }
-.dz-th { width: 60px; height: 60px; border-radius: 10px; border: 1.5px solid #D8CFC1; background: #F1EBE1; padding: 3px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
-.dz-th.sel { border: 3px solid #2F5DA8; padding: 1.5px; }
+.dz-th { border-radius: 10px; border: 1.5px solid #D8CFC1; background: #F1EBE1; padding: 3px 4px; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 2px; font: inherit; font-size: 11px; color: #444; width: 76px; }
+.dz-th span { line-height: 1.1; text-align: center; }
+.dz-th-eye { width: 104px; }
+.dz-th.sel { border: 3px solid #2F5DA8; padding: 1.5px 2.5px; }
+.dz-row-skin { align-items: flex-start; }
+.dz-skinwrap { display: flex; flex-direction: column; gap: 2px; font-size: 12px; color: #777; }
+.dz-skin-top { text-align: center; }
+.dz-skinbox { position: relative; width: 300px; height: 170px; }
+.dz-skin { width: 300px; height: 170px; border-radius: 8px; cursor: crosshair; display: block; touch-action: none; }
+.dz-skin-dot { position: absolute; width: 22px; height: 22px; margin: -11px 0 0 -11px; border-radius: 50%; border: 3px solid #fff; box-shadow: 0 0 0 2px #2F5DA8; pointer-events: none; }
+.dz-skin-x { display: flex; justify-content: space-between; width: 300px; }
+.dz-msg { margin: 6px 0 10px !important; }
+.dz-actions { margin-top: 10px; }
+.dz-actions .srl-btn { font-size: 16px; padding: 8px 18px; }
+.dz-like-wrap { display: flex; gap: 36px; align-items: center; margin-top: 14px; }
+.dz-preview-sm { width: 240px; height: 288px; }
+.dz-like-scale { flex: 1; }
+.dz-like-row { display: flex; gap: 8px; margin-bottom: 14px; }
+.dz-like-btn { font: inherit; width: 74px; height: 74px; border-radius: 12px; border: 2px solid #E3DACB; background: #fff; cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; }
+.dz-like-btn b { font-size: 22px; }
+.dz-like-btn span { font-size: 11px; color: #666; line-height: 1.1; text-align: center; }
+.dz-like-btn:hover { border-color: #9DB3D9; }
+.dz-like-btn.sel { border-color: #2F5DA8; background: #EEF3FB; }
 
 /* Sliding puzzle */
 .pz-wrap { display: flex; gap: 40px; align-items: center; justify-content: center; }

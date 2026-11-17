@@ -180,17 +180,22 @@ SRL.main = (function () {
       step('designer', 'designer', async (el) => {
         const d = await SRL.designer.run(el, S);
         S.knownSpec = d.spec;
-        const u = SRL.people.makeUnfamiliar(d.spec, C.UNFAMILIAR_DIFF_COUNT);
+        const u = SRL.avatarRules.unfamiliar(d.spec, S.p.seed, C);
         S.unfamiliarSpec = u.spec;
         S.unfamiliarName = chooseUnfamiliarName(S.knownName);
+        const keys = ['designer_edits', 'designer_resets', 'designer_tabs_visited'].concat(SRL.designer.TABS.map((t) => 't_designer_' + t.id + '_ms'), SRL.designer.TABS.map((t) => 'designer_edits_' + t.id));
+        keys.forEach((k) => (S.p[k] = d[k]));
         Object.assign(S.p, {
-          known_avatar: SRL.people.featureString(d.spec), unfamiliar_avatar: SRL.people.featureString(u.spec),
-          avatar_diff_features: u.diff.join('|'), unfamiliar_name: S.unfamiliarName,
-          designer_changes: d.designer_changes
+          known_avatar: SRL.people.vecString(d.spec), unfamiliar_avatar: SRL.people.vecString(u.spec),
+          unfam_changes: u.changes.join('|'), unfam_k: u.K, unfam_identity_dist: +u.distance.toFixed(3),
+          unfamiliar_name: S.unfamiliarName
         });
-        return { known_avatar: S.p.known_avatar, unfamiliar_avatar: S.p.unfamiliar_avatar, avatar_diff_features: S.p.avatar_diff_features,
-          unfamiliar_name: S.unfamiliarName, designer_changes: d.designer_changes };
+        const out = { known_avatar: S.p.known_avatar, unfamiliar_avatar: S.p.unfamiliar_avatar, unfam_changes: S.p.unfam_changes, unfam_k: u.K,
+          unfam_identity_dist: S.p.unfam_identity_dist, unfamiliar_name: S.unfamiliarName };
+        keys.forEach((k) => (out[k] = d[k]));
+        return out;
       }),
+      step('likeness', 'designer', async (el) => keep(await SRL.designer.likeness(el, S, S.knownSpec), ['likeness_rating', 'likeness_rt_ms'])),
       step('audio_check', 'audio_check', async (el) => keep(await Sc.audioCheck(el, S), ['audio_check_pass', 'audio_check_attempts'])),
       step('filler1', 'filler1', async (el) => keep(await SRL.fillers.puzzle(el, S, S.timing.FILLER1), ['filler1_solved', 'filler1_moves', 'filler1_time_to_solve_ms', 'filler1_n_solved'])),
       step('fam_instructions', 'fam', async (el) => { SRL.progress.stage('fam'); return Sc.famInstructions(el, S); })

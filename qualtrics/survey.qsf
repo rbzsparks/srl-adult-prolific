@@ -382,9 +382,25 @@
         "AnalyzeText": false
        },
        {
-        "Description": "avatar_diff_features",
+        "Description": "unfam_changes",
         "Type": "Recipient",
-        "Field": "avatar_diff_features",
+        "Field": "unfam_changes",
+        "VariableType": "String",
+        "DataVisibility": [],
+        "AnalyzeText": false
+       },
+       {
+        "Description": "unfam_k",
+        "Type": "Recipient",
+        "Field": "unfam_k",
+        "VariableType": "String",
+        "DataVisibility": [],
+        "AnalyzeText": false
+       },
+       {
+        "Description": "unfam_identity_dist",
+        "Type": "Recipient",
+        "Field": "unfam_identity_dist",
         "VariableType": "String",
         "DataVisibility": [],
         "AnalyzeText": false
@@ -393,6 +409,142 @@
         "Description": "unfamiliar_name",
         "Type": "Recipient",
         "Field": "unfamiliar_name",
+        "VariableType": "String",
+        "DataVisibility": [],
+        "AnalyzeText": false
+       },
+       {
+        "Description": "likeness_rating",
+        "Type": "Recipient",
+        "Field": "likeness_rating",
+        "VariableType": "String",
+        "DataVisibility": [],
+        "AnalyzeText": false
+       },
+       {
+        "Description": "likeness_rt_ms",
+        "Type": "Recipient",
+        "Field": "likeness_rt_ms",
+        "VariableType": "String",
+        "DataVisibility": [],
+        "AnalyzeText": false
+       },
+       {
+        "Description": "designer_edits",
+        "Type": "Recipient",
+        "Field": "designer_edits",
+        "VariableType": "String",
+        "DataVisibility": [],
+        "AnalyzeText": false
+       },
+       {
+        "Description": "designer_resets",
+        "Type": "Recipient",
+        "Field": "designer_resets",
+        "VariableType": "String",
+        "DataVisibility": [],
+        "AnalyzeText": false
+       },
+       {
+        "Description": "designer_tabs_visited",
+        "Type": "Recipient",
+        "Field": "designer_tabs_visited",
+        "VariableType": "String",
+        "DataVisibility": [],
+        "AnalyzeText": false
+       },
+       {
+        "Description": "designer_edits_skin",
+        "Type": "Recipient",
+        "Field": "designer_edits_skin",
+        "VariableType": "String",
+        "DataVisibility": [],
+        "AnalyzeText": false
+       },
+       {
+        "Description": "designer_edits_face",
+        "Type": "Recipient",
+        "Field": "designer_edits_face",
+        "VariableType": "String",
+        "DataVisibility": [],
+        "AnalyzeText": false
+       },
+       {
+        "Description": "designer_edits_eyes",
+        "Type": "Recipient",
+        "Field": "designer_edits_eyes",
+        "VariableType": "String",
+        "DataVisibility": [],
+        "AnalyzeText": false
+       },
+       {
+        "Description": "designer_edits_nosemouth",
+        "Type": "Recipient",
+        "Field": "designer_edits_nosemouth",
+        "VariableType": "String",
+        "DataVisibility": [],
+        "AnalyzeText": false
+       },
+       {
+        "Description": "designer_edits_hair",
+        "Type": "Recipient",
+        "Field": "designer_edits_hair",
+        "VariableType": "String",
+        "DataVisibility": [],
+        "AnalyzeText": false
+       },
+       {
+        "Description": "designer_edits_extras",
+        "Type": "Recipient",
+        "Field": "designer_edits_extras",
+        "VariableType": "String",
+        "DataVisibility": [],
+        "AnalyzeText": false
+       },
+       {
+        "Description": "t_designer_skin_ms",
+        "Type": "Recipient",
+        "Field": "t_designer_skin_ms",
+        "VariableType": "String",
+        "DataVisibility": [],
+        "AnalyzeText": false
+       },
+       {
+        "Description": "t_designer_face_ms",
+        "Type": "Recipient",
+        "Field": "t_designer_face_ms",
+        "VariableType": "String",
+        "DataVisibility": [],
+        "AnalyzeText": false
+       },
+       {
+        "Description": "t_designer_eyes_ms",
+        "Type": "Recipient",
+        "Field": "t_designer_eyes_ms",
+        "VariableType": "String",
+        "DataVisibility": [],
+        "AnalyzeText": false
+       },
+       {
+        "Description": "t_designer_nosemouth_ms",
+        "Type": "Recipient",
+        "Field": "t_designer_nosemouth_ms",
+        "VariableType": "String",
+        "DataVisibility": [],
+        "AnalyzeText": false
+       },
+       {
+        "Description": "t_designer_hair_ms",
+        "Type": "Recipient",
+        "Field": "t_designer_hair_ms",
+        "VariableType": "String",
+        "DataVisibility": [],
+        "AnalyzeText": false
+       },
+       {
+        "Description": "t_designer_extras_ms",
+        "Type": "Recipient",
+        "Field": "t_designer_extras_ms",
         "VariableType": "String",
         "DataVisibility": [],
         "AnalyzeText": false
@@ -3497,7 +3649,7 @@
    "SecondaryAttribute": "consent_text",
    "TertiaryAttribute": null,
    "Payload": {
-    "QuestionText": "<p><b>[PLACEHOLDER: IRB-APPROVED CONSENT TEXT]</b></p><p>This study takes about <b>17 minutes</b>. It requires <b>sound</b> (headphones or speakers) and a desktop or laptop computer.</p><p>[Purpose, procedures, risks, benefits, compensation, confidentiality, voluntary participation, contact information.]</p>",
+    "QuestionText": "<p><b>[PLACEHOLDER: IRB-APPROVED CONSENT TEXT]</b></p><p>This study takes about <b>20 minutes</b>. It requires <b>sound</b> (headphones or speakers) and a desktop or laptop computer.</p><p>[Purpose, procedures, risks, benefits, compensation, confidentiality, voluntary participation, contact information.]</p>",
     "DataExportTag": "consent_text",
     "QuestionType": "DB",
     "Selector": "TB",
@@ -3631,7 +3783,7 @@
      "Private": false,
      "Hidden": false
     },
-    "QuestionJS": "Qualtrics.SurveyEngine.addOnload(function () {\n  /* Loads the externally hosted experiment (GitHub Pages). Edit BASE_URL / VERSION here if they change. */\n  var q = this;\n  q.hideNextButton();\n  if (q.hidePreviousButton) { q.hidePreviousButton(); }\n  var BASE_URL = 'https://rbzsparks.github.io/srl-adult-prolific/experiment/';\n  var VERSION = '1.2.2';\n  var params = {\n    PROLIFIC_PID: \"${e://Field/PROLIFIC_PID}\", STUDY_ID: \"${e://Field/STUDY_ID}\", SESSION_ID: \"${e://Field/SESSION_ID}\",\n    category: \"${e://Field/category}\", list: \"${e://Field/list}\", debug: \"${e://Field/debug}\", name_label: \"${e://Field/name_label}\", ResponseID: \"${e://Field/ResponseID}\"\n  };\n  function fail(e) {\n    var c = q.getQuestionContainer ? q.getQuestionContainer() : document.body;\n    c.innerHTML = '<p style=\"font-size:18px;line-height:1.5\">Sorry, the study could not load. Please check your internet connection and reload this page. ' +\n      'If this keeps happening, please contact the researchers through Prolific.</p>';\n  }\n  var s = document.createElement('script');\n  s.src = BASE_URL + 'js/loader.js?v=' + VERSION;\n  s.onload = function () {\n    window.SRL_LOAD({ base: BASE_URL, mode: 'qualtrics', params: params, version: VERSION,\n      finish: function () { q.clickNextButton(); }, onError: fail });\n  };\n  s.onerror = fail;\n  document.head.appendChild(s);\n});\n"
+    "QuestionJS": "Qualtrics.SurveyEngine.addOnload(function () {\n  /* Loads the externally hosted experiment (GitHub Pages). Edit BASE_URL / VERSION here if they change. */\n  var q = this;\n  q.hideNextButton();\n  if (q.hidePreviousButton) { q.hidePreviousButton(); }\n  var BASE_URL = 'https://rbzsparks.github.io/srl-adult-prolific/experiment/';\n  var VERSION = '2.0.0';\n  var params = {\n    PROLIFIC_PID: \"${e://Field/PROLIFIC_PID}\", STUDY_ID: \"${e://Field/STUDY_ID}\", SESSION_ID: \"${e://Field/SESSION_ID}\",\n    category: \"${e://Field/category}\", list: \"${e://Field/list}\", debug: \"${e://Field/debug}\", name_label: \"${e://Field/name_label}\", ResponseID: \"${e://Field/ResponseID}\"\n  };\n  function fail(e) {\n    var c = q.getQuestionContainer ? q.getQuestionContainer() : document.body;\n    c.innerHTML = '<p style=\"font-size:18px;line-height:1.5\">Sorry, the study could not load. Please check your internet connection and reload this page. ' +\n      'If this keeps happening, please contact the researchers through Prolific.</p>';\n  }\n  var s = document.createElement('script');\n  s.src = BASE_URL + 'js/loader.js?v=' + VERSION;\n  s.onload = function () {\n    window.SRL_LOAD({ base: BASE_URL, mode: 'qualtrics', params: params, version: VERSION,\n      finish: function () { q.clickNextButton(); }, onError: fail });\n  };\n  s.onerror = fail;\n  document.head.appendChild(s);\n});\n"
    }
   },
   {

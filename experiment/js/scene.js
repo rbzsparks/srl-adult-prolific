@@ -1,6 +1,8 @@
 /* scene.js: one familiarization scene.
- * Layout (stage px, 1000×625): stranger left facing right, known/unfamiliar person right facing left with
- * their name beneath, novel object on a small table between them, incidental object on a wall shelf (top right).
+ * Layout (stage px, 1000×625): stranger left, turned three-quarters toward the person on the right; known/unfamiliar
+ * person right, turned toward her, with their name beneath (SHOW_NAME_LABEL); novel object on a low table between
+ * them, clearly below eye level, so a look at the object reads differently from a look at the partner; incidental
+ * object on a wall shelf (top right). Gaze is aimed at the actual position of its target (look()).
  * Timeline: stranger slides in → greeting audio → nonverbal response → label audio with gaze sequence →
  * nods → SPACE enabled 1 s after label audio ends → auto-advance 15 s after label audio ends.
  * Motion and timing are identical in both conditions; only the right-hand avatar and its name differ. */
@@ -10,23 +12,33 @@ SRL.scene = (function () {
   const POS = {
     stranger: { x: 60, y: 224, w: 280, h: 336, startX: -330 },
     other: { x: 660, y: 224, w: 280, h: 336 },
-    object: { x: 430, y: 268, w: 140, h: 140 },
+    object: { x: 440, y: 392, w: 120, h: 120 },
     incidental: { x: 794, y: 88, w: 72, h: 72 },
     name: { x: 800, y: 603 }
   };
   // Areas of interest on the final frame, normalized to the stage (0-1).
   const AOI = {
-    stranger_face: [125, 262, 275, 418],
-    object: [425, 262, 575, 412],
-    other_face: [725, 262, 875, 418],
+    stranger_face: [120, 270, 290, 466],
+    object: [435, 387, 565, 517],
+    other_face: [710, 270, 880, 466],
     incidental: [788, 84, 872, 166]
   };
   const AOI_NORM = {};
   Object.keys(AOI).forEach((k) => { const a = AOI[k]; AOI_NORM[k] = [a[0] / W, a[1] / H, a[2] / W, a[3] / H].map((v) => +v.toFixed(4)); });
 
+  /* Gaze aimed at the real target: from the person's eye position (stage px) to the target, the eyes turn fully toward
+   * it horizontally and move down in proportion to the angle (upper lids drop), and the head pitches toward it by about
+   * 0.55 of the angle (rot, degrees) with a small drop (nod). A look at the partner is level. */
+  const EYE = (pos, facing) => [pos.x + (100 + facing * 10) * pos.w / 200, pos.y + 104 * pos.h / 240];
+  function look(from, facing, tx, ty) {
+    const vx = tx - from[0], vy = ty - from[1], deg = Math.atan2(vy, Math.abs(vx)) * 180 / Math.PI;
+    return { gaze: [Math.sign(vx), U.clamp(Math.sin(deg * Math.PI / 180) * 3.2, -1, 1)], rot: facing * U.clamp(deg * 0.55, -8, 12), nod: U.clamp(deg * 0.18, -1.5, 4) };
+  }
+  const OBJ_C = [POS.object.x + POS.object.w / 2, POS.object.y + POS.object.h / 2];
+  const S_EYE = EYE(POS.stranger, 1), O_EYE = EYE(POS.other, -1);
   const GAZE = {
-    stranger: { other: { gazeX: 0.8, gazeY: 0, headRot: 0 }, object: { gazeX: 1.3, gazeY: 1.5, headRot: 5 } },
-    other: { ahead: { gazeX: -0.3, gazeY: 0, headRot: 0 }, stranger: { gazeX: -0.8, gazeY: 0, headRot: 0 }, object: { gazeX: -1.3, gazeY: 1.5, headRot: -5 } }
+    stranger: { other: look(S_EYE, 1, O_EYE[0], O_EYE[1]), object: look(S_EYE, 1, OBJ_C[0], OBJ_C[1]) },
+    other: { ahead: { gaze: [-0.3, 0], rot: 0, nod: 0 }, stranger: look(O_EYE, -1, S_EYE[0], S_EYE[1]), object: look(O_EYE, -1, OBJ_C[0], OBJ_C[1]) }
   };
 
   function build(el, sc, ctx) {
@@ -46,8 +58,8 @@ SRL.scene = (function () {
         <g class="sc-other">${P.svg(otherSpec, { facing: -1, attrs: pAttr(POS.other, POS.other.x) })}</g>
         <g class="sc-stranger">${P.svg(sc.stranger, { facing: 1, attrs: pAttr(POS.stranger, POS.stranger.startX) })}</g>
         <rect x="452" y="548" width="96" height="12" rx="4" fill="#8A6644"/>
-        <rect x="489" y="420" width="22" height="132" fill="#8A6644"/>
-        <rect x="416" y="406" width="168" height="15" rx="6" fill="#A07A55"/>
+        <rect x="489" y="524" width="22" height="28" fill="#8A6644"/>
+        <rect x="410" y="510" width="180" height="15" rx="6" fill="#A07A55"/>
         <g class="sc-object">${O.novelSvg(sc.object_id, `x="${POS.object.x}" y="${POS.object.y}" width="${POS.object.w}" height="${POS.object.h}"`)}</g>
         <rect x="0" y="560" width="${W}" height="65" fill="#FBF8F3"/>
         <rect x="0" y="560" width="${W}" height="1.5" fill="#E3DACB"/>
@@ -125,17 +137,17 @@ SRL.scene = (function () {
     // 2. Greeting: "Hi! Good to see you!" with lip-sync and a slight head bob.
     const tg = U.now();
     const greet = await SRL.audio.play('greet_' + sc.id, {
-      onAmp: (a) => { const e = (U.now() - tg) / 1000; S.set({ mouth: a, nod: Math.sin(e * 7) * 0.7 }); }
+      onAmp: (a) => { const e = (U.now() - tg) / 1000; S.set({ mouth: a, nod: GAZE.stranger.other.nod + Math.sin(e * 7) * 0.7 }); }
     });
-    S.set({ mouth: 0, nod: 0 });
+    S.set({ mouth: 0, nod: GAZE.stranger.other.nod });
 
     // 3. Nonverbal response: smile, eyebrow raise, head tilt, small happy bounce.
     const resp = U.tween(T.RESPONSE, (t) => {
       const up = Math.min(1, t * 4), down = t > 0.75 ? (t - 0.75) * 4 : 0;
-      Ot.set({ smile: U.lerp(0.2, 1, up), brow: up - down, headRot: -4 * (up - down), bounce: Math.sin(Math.min(1, t * 2) * Math.PI) * 6 });
+      Ot.set({ smile: U.lerp(0.2, 1, up), brow: up - down, rot: GAZE.other.stranger.rot - 4 * (up - down), bounce: Math.sin(Math.min(1, t * 2) * Math.PI) * 6 });
     }, (x) => x);
     await resp;
-    Ot.set({ brow: 0, headRot: 0, bounce: 0, smile: 0.8 });
+    Ot.set({ brow: 0, rot: GAZE.other.stranger.rot, bounce: 0, smile: 0.8 });
     await U.sleep(T.BEFORE_LABEL_PAUSE);
 
     // 4. Label: "Look! It's a X! A X!" with the gaze sequence driven by the clip's pause structure.
@@ -157,7 +169,8 @@ SRL.scene = (function () {
     S.set(Object.assign({ mouth: 0 }, GAZE.stranger.object));
 
     // 5. Other person nods twice while looking at the object and smiling.
-    U.tween(560, (t) => Ot.set({ nod: Math.abs(Math.sin(t * Math.PI * 2)) * 2.6, smile: 1 }), (x) => x).then(() => Ot.set({ nod: 0 }));
+    const base = GAZE.other.object.nod;
+    U.tween(560, (t) => Ot.set({ nod: base + Math.abs(Math.sin(t * Math.PI * 2)) * 2.6, smile: 1 }), (x) => x).then(() => Ot.set({ nod: base }));
 
     // 6. SPACE enabled 1 s after label audio ends; auto-advance 15 s after.
     await U.sleep(T.SPACE_ENABLE_AFTER_LABEL);

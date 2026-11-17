@@ -94,7 +94,7 @@ SRL.stimuli = (function () {
         id: s.id, half: s.half, word: s.word, object_id: s.object_id, incidental: s.incidental,
         incidental_label: DATA.incidental_types[s.incidental],
         incidental_color: U.pick(colors),
-        stranger: s.stranger, foil: SRL.people.foilSpec(s.stranger, s.foil),
+        stranger: s.stranger, foil: s.foil, foil_change: s.foil_change,
         condition: known ? 'known' : 'unfamiliar'
       };
     });
