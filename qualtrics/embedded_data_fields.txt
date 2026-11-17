@@ -9,6 +9,7 @@ device_ok
 device_reason
 device_screen
 device_window
+device_pointer
 relationship_type
 is_kin
 ios

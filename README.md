@@ -145,8 +145,8 @@ Example full walkthrough: `…/index.html?debug=1&auto=1&devsave=1&PROLIFIC_PID=
 
 Survey flow in the .qsf:
 
-1. **Embedded Data**: `PROLIFIC_PID`, `STUDY_ID`, `SESSION_ID`, `debug`, `name_label` (from the URL), plus every field the experiment writes (379 fields in total; listed in `qualtrics/embedded_data_fields.txt`).
-2. **Device check** (JS, before consent): mobile/tablet, no mouse/trackpad, or a screen smaller than 1024 × 650 physical pixels (either orientation; measured as CSS pixels × `devicePixelRatio`, so Windows display scaling or browser zoom doesn't fail an ordinary laptop) → message showing the detected reason and screen size → **End of Survey → redirect to `…/complete?cc=SCREENOUT_CODE`**. Qualtrics' preview has a **Mobile view** toggle; with it on, a phone-sized frame is shown, so preview with it off.
+1. **Embedded Data**: `PROLIFIC_PID`, `STUDY_ID`, `SESSION_ID`, `debug`, `name_label` (from the URL), plus every field the experiment writes (380 fields in total; listed in `qualtrics/embedded_data_fields.txt`).
+2. **Device check** (JS, before consent): mobile/tablet (by user agent), or a screen smaller than 1024 × 650 physical pixels (either orientation; measured as CSS pixels × `devicePixelRatio`, so Windows display scaling or browser zoom doesn't fail an ordinary laptop) → message showing the detected reason and screen size → **End of Survey → redirect to `…/complete?cc=SCREENOUT_CODE`**. Qualtrics' preview has a **Mobile view** toggle; with it on, a phone-sized frame is shown, so preview with it off.
 3. **Consent** (placeholder text, shows the ~20 min estimate). "I do not agree" → "Please return this study on Prolific" (no Next button, no code).
 4. **Randomizer**: present 1 of 6, **evenly present** on. Each element sets `category` (acquaintance / moderate / close) × `list` (A / B).
 5. **Experiment (JS)**: one question whose JS loads the experiment from `BASE_URL`; the Next button is hidden and clicked automatically when the participant finishes.
@@ -439,7 +439,7 @@ python analysis/reshape_qualtrics.py export.csv -o long.csv
 | `debug` | `1` if the URL had `debug=1` (set by the URL) |
 | `name_label` | `0`/`1` if set by the URL or survey flow (blank = use `SHOW_NAME_LABEL`, default shown) |
 | `category`, `list` | set by the Randomizer (also written back by the experiment) |
-| `device_ok`, `device_reason`, `device_screen`, `device_window` | device check before consent (`reason`: mobile / no_mouse / small_screen; `device_screen` e.g. `1366x768 px (1093x614 at scale 1.25)`) |
+| `device_ok`, `device_reason`, `device_screen`, `device_window`, `device_pointer` | device check before consent (`reason`: mobile / small_screen; `device_pointer` records `any-pointer: fine`, hover and touch points but no longer screens anyone out, because a MacBook trackpad was reported as no fine pointer; `device_screen` e.g. `1366x768 px (1093x614 at scale 1.25)`) |
 | `consent` | 1 = agree, 2 = do not agree |
 | `expected_test` | 1 Yes, 2 No, 3 Not sure |
 | `strategy`, `tech_problems` | free text |
