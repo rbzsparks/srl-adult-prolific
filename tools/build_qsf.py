@@ -79,20 +79,23 @@ EXPERIMENT_JS = r"""Qualtrics.SurveyEngine.addOnload(function () {
 """
 
 DEVICE_JS = r"""Qualtrics.SurveyEngine.addOnload(function () {
-  /* Device check before consent: desktop/laptop with a screen of at least __W__ x __H__ (either orientation). */
+  /* Device check before consent: desktop/laptop with a screen of at least __W__ x __H__ (either orientation).
+   * Screen size is measured in physical pixels (CSS pixels x devicePixelRatio), so display scaling (e.g. Windows at
+   * 125-175%) or browser zoom does not make an ordinary laptop screen look too small. */
   var q = this;
   q.hideNextButton();
   var ua = navigator.userAgent || '';
   var mobileUA = /Mobi|Android|iPhone|iPad|iPod|Tablet|Kindle|Silk|PlayBook|BlackBerry|Opera Mini/i.test(ua);
   var iPadOS = /Macintosh/.test(ua) && navigator.maxTouchPoints > 1;
   var fine = window.matchMedia ? window.matchMedia('(any-pointer: fine)').matches : true;
-  var sw = screen.width, sh = screen.height;
-  var bigEnough = Math.max(sw, sh) >= __W__ && Math.min(sw, sh) >= __H__;
+  var sw = screen.width, sh = screen.height, dpr = window.devicePixelRatio || 1;
+  var pw = Math.round(sw * dpr), ph = Math.round(sh * dpr);
+  var bigEnough = Math.max(pw, ph) >= __W__ && Math.min(pw, ph) >= __H__;
   var reason = mobileUA || iPadOS ? 'mobile' : (!fine ? 'no_mouse' : (!bigEnough ? 'small_screen' : ''));
   var set = function (k, v) { __SET__(k, String(v)); };
   set('device_ok', reason ? 0 : 1);
   set('device_reason', reason);
-  set('device_screen', sw + 'x' + sh);
+  set('device_screen', pw + 'x' + ph + ' px (' + sw + 'x' + sh + ' at scale ' + Math.round(dpr * 100) / 100 + ')');
   set('device_window', window.innerWidth + 'x' + window.innerHeight);
   setTimeout(function () { q.clickNextButton(); }, 400);
 });
@@ -157,7 +160,8 @@ def main():
     q_dev = q({'QuestionText': 'Checking your device…', 'QuestionJS': DEVICE_JS.replace('__W__', W).replace('__H__', H).replace('__SET__', setter)}, 'device_check')
     b_dev = block('Device check', [q_dev], 'Default')
     q_devmsg = q({'QuestionText': f'<p>Sorry, this study needs a <b>desktop or laptop computer</b> with a mouse or trackpad and a screen of at least {W} × {H} pixels.</p>'
-                                  '<p>Click the arrow to return to Prolific.</p>'}, 'device_screenout_msg')
+                                  '<p>Click the arrow to return to Prolific.</p>'
+                                  f'<p style="font-size:12px;color:#777">Technical details: ${{e://Field/{pre}device_reason}} · screen ${{e://Field/{pre}device_screen}}</p>'}, 'device_screenout_msg')
     b_devmsg = block('Device screen-out message', [q_devmsg])
 
     q_cons_text = q({'QuestionText': '<p><b>[PLACEHOLDER: IRB-APPROVED CONSENT TEXT]</b></p>'

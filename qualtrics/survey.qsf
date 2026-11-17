@@ -3607,7 +3607,7 @@
      "Private": false,
      "Hidden": false
     },
-    "QuestionJS": "Qualtrics.SurveyEngine.addOnload(function () {\n  /* Device check before consent: desktop/laptop with a screen of at least 1024 x 650 (either orientation). */\n  var q = this;\n  q.hideNextButton();\n  var ua = navigator.userAgent || '';\n  var mobileUA = /Mobi|Android|iPhone|iPad|iPod|Tablet|Kindle|Silk|PlayBook|BlackBerry|Opera Mini/i.test(ua);\n  var iPadOS = /Macintosh/.test(ua) && navigator.maxTouchPoints > 1;\n  var fine = window.matchMedia ? window.matchMedia('(any-pointer: fine)').matches : true;\n  var sw = screen.width, sh = screen.height;\n  var bigEnough = Math.max(sw, sh) >= 1024 && Math.min(sw, sh) >= 650;\n  var reason = mobileUA || iPadOS ? 'mobile' : (!fine ? 'no_mouse' : (!bigEnough ? 'small_screen' : ''));\n  var set = function (k, v) { Qualtrics.SurveyEngine.setEmbeddedData(k, String(v)); };\n  set('device_ok', reason ? 0 : 1);\n  set('device_reason', reason);\n  set('device_screen', sw + 'x' + sh);\n  set('device_window', window.innerWidth + 'x' + window.innerHeight);\n  setTimeout(function () { q.clickNextButton(); }, 400);\n});\n"
+    "QuestionJS": "Qualtrics.SurveyEngine.addOnload(function () {\n  /* Device check before consent: desktop/laptop with a screen of at least 1024 x 650 (either orientation).\n   * Screen size is measured in physical pixels (CSS pixels x devicePixelRatio), so display scaling (e.g. Windows at\n   * 125-175%) or browser zoom does not make an ordinary laptop screen look too small. */\n  var q = this;\n  q.hideNextButton();\n  var ua = navigator.userAgent || '';\n  var mobileUA = /Mobi|Android|iPhone|iPad|iPod|Tablet|Kindle|Silk|PlayBook|BlackBerry|Opera Mini/i.test(ua);\n  var iPadOS = /Macintosh/.test(ua) && navigator.maxTouchPoints > 1;\n  var fine = window.matchMedia ? window.matchMedia('(any-pointer: fine)').matches : true;\n  var sw = screen.width, sh = screen.height, dpr = window.devicePixelRatio || 1;\n  var pw = Math.round(sw * dpr), ph = Math.round(sh * dpr);\n  var bigEnough = Math.max(pw, ph) >= 1024 && Math.min(pw, ph) >= 650;\n  var reason = mobileUA || iPadOS ? 'mobile' : (!fine ? 'no_mouse' : (!bigEnough ? 'small_screen' : ''));\n  var set = function (k, v) { Qualtrics.SurveyEngine.setEmbeddedData(k, String(v)); };\n  set('device_ok', reason ? 0 : 1);\n  set('device_reason', reason);\n  set('device_screen', pw + 'x' + ph + ' px (' + sw + 'x' + sh + ' at scale ' + Math.round(dpr * 100) / 100 + ')');\n  set('device_window', window.innerWidth + 'x' + window.innerHeight);\n  setTimeout(function () { q.clickNextButton(); }, 400);\n});\n"
    }
   },
   {
@@ -3617,7 +3617,7 @@
    "SecondaryAttribute": "device_screenout_msg",
    "TertiaryAttribute": null,
    "Payload": {
-    "QuestionText": "<p>Sorry, this study needs a <b>desktop or laptop computer</b> with a mouse or trackpad and a screen of at least 1024 × 650 pixels.</p><p>Click the arrow to return to Prolific.</p>",
+    "QuestionText": "<p>Sorry, this study needs a <b>desktop or laptop computer</b> with a mouse or trackpad and a screen of at least 1024 × 650 pixels.</p><p>Click the arrow to return to Prolific.</p><p style=\"font-size:12px;color:#777\">Technical details: ${e://Field/device_reason} · screen ${e://Field/device_screen}</p>",
     "DataExportTag": "device_screenout_msg",
     "QuestionType": "DB",
     "Selector": "TB",
