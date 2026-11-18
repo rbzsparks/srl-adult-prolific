@@ -448,7 +448,10 @@ Designed and reviewed in `design/avatar_style_sheet.html` (shading levels, rules
   jaw (shoulder length, long, long curls, locs, braids, and slightly the bobs and medium curls) is drawn in horizontal bands
   (`HANG`, `hangBands`, `hairLayer` in `js/people.js`): above the jaw it turns with the head; the turn then fades out over 12
   steps, so the ends hang straight down and only move along with the head (sideways shift and drop). The strands in front of
-  the shoulders follow the same rule. `tools/hair_motion.html` loops every style through the scenes' own look at the partner
+  the shoulders follow the same rule. In the scenes each banded layer is drawn once into a cached image that the bands
+  show (`layerImage`, `cacheHair`), so animating costs a few image draws per frame; v2.3.0 re-rendered the hair's paths in
+  every band, which made scenes with braids or locs lag (fixed in v2.3.1). Still pictures (designer, tests) keep the plain
+  paths. `tools/hair_motion.html` loops every style through the scenes' own look at the partner
   and at the object, as the stranger and as the known / unfamiliar person.
 - **Review page:** `tools/hair_review.html` shows every changed style old (v2.2, from `tools/legacy/people_v2.2.js`) beside
   new, across five skin-tone / hair-colour combinations, at designer and scene size. **These drawings still need sign-off
@@ -858,7 +861,8 @@ matching** → sound check → scene instructions (**new framing**) → countdow
   reverse, `match_keymap`, 50/50). 6 trials each of known avatar + known name, Jordan + Jordan, known avatar + Jordan, Jordan
   + known name, in random order with no more than 3 of one type and no more than 4 of one correct answer in a row. Each trial:
   fixation 500 ms → avatar and name until response (max 2.5 s) → "Correct" / "Incorrect" / "Too slow" 400 ms → 300 ms blank.
-  A key reminder stays at the bottom. Trial data (labels only: `known` / `unfamiliar` for the avatar and the name) are in the
+  A key reminder stays at the bottom, laid out like the keyboard: F always on the left, J on the right (v2.3.1; in 2.3.0 the
+  "matches" key was listed first, so J could appear on the left). Trial data (labels only: `known` / `unfamiliar` for the avatar and the name) are in the
   JSON backup under `match`; summaries are participant fields. `match_flag` never excludes anyone.
 - **Scene instructions:** "Next you'll watch short moments from [name]'s and Jordan's days, as they run into people they know.
   Imagine you're really watching [name] and Jordan." (repeat6 adds "Scenes may be shown more than once."; with check-ins on:

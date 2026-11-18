@@ -139,10 +139,12 @@ SRL.binding = (function () {
     const T = C(), fMatch = S.matchKeymap === 'F=match';
     const keyFor = (m) => (m ? (fMatch ? 'F' : 'J') : (fMatch ? 'J' : 'F'));
     const nm = esc(S.knownName), un = esc(S.unfamiliarName);
+    // Key reminder laid out like the keyboard: F always on the left, J on the right, whichever one means "matches".
+    const keys = `<p class="bd-keys"><span><b>F</b> = ${fMatch ? 'matches' : "doesn't match"}</span><span><b>J</b> = ${fMatch ? "doesn't match" : 'matches'}</span></p>`;
     const pg = UI.page(el, `<h1>Matching names</h1>
       <p class="srl-lead">You'll see a person with a name below them. Press <b>${keyFor(true)}</b> if the name matches the person and <b>${keyFor(false)}</b> if it doesn't. Be quick and accurate.</p>
       <div class="bd-pair">${figure(S.knownSpec, S.knownName, 150)}${figure(S.unfamiliarSpec, S.unfamiliarName, 150)}</div>
-      <p class="srl-note">These are ${nm} and ${un}. Put your fingers on the <b>F</b> and <b>J</b> keys.</p>
+      <p class="srl-note">These are ${nm} and ${un}. Put your fingers on the <b>F</b> and <b>J</b> keys.</p>${keys}
       <div class="srl-actions"><button class="srl-btn" id="go">Start</button></div>`);
     auto(S, () => pg.querySelector('#go').click());
     await UI.onClick(pg.querySelector('#go'));
@@ -150,7 +152,7 @@ SRL.binding = (function () {
     const order = matchOrder(S.rng2, T.MATCH_TRIALS_PER_TYPE);
     const maxRt = T.MATCH_MAX_RT_MS;
     el.innerHTML = `<div class="srl-page bd-match"><div class="bd-mstage"></div>
-      <p class="bd-keys"><span><b>${keyFor(true)}</b> = matches</span><span><b>${keyFor(false)}</b> = doesn't match</span></p></div>`;
+      ${keys}</div>`;
     const stage = el.querySelector('.bd-mstage');
     const trials = [];
     for (let i = 0; i < order.length; i++) {

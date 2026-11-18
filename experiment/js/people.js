@@ -983,12 +983,25 @@ SRL.people = (function () {
     const rot = o.rot || 0, dx = 45 * Math.sin(rot * Math.PI / 180);
     return `translate(${f((1 - w) * dx)} ${f(o.nod || 0)}) rotate(${f(rot * w)} 100 165)`;
   };
+  /* A banded layer is drawn once into an image (an SVG data URL), and the bands show that image. The browser keeps the
+   * image rendered, so animating the bands costs a few image draws per frame instead of re-rendering the hair's
+   * paths once per band (which made scenes with braids or locs lag). Memoised per figure. */
+  function layerImage(S, kind, content) {
+    S.img = S.img || {};
+    if (!S.img[kind]) {
+      const doc = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 240" width="400" height="480"><defs>${S.defs}</defs>${content}</svg>`;
+      S.img[kind] = `<image href="data:image/svg+xml;charset=utf-8,${encodeURIComponent(doc)}" x="0" y="0" width="200" height="240" preserveAspectRatio="none"/>`;
+    }
+    return S.img[kind];
+  }
   // One hair layer (back / front / over), banded when the style hangs.
   function hairLayer(S, o, kind, content) {
     if (!content) return '';
     if (!S.hang) return `<g class="p-hair" data-w="1" transform="${hairT(o, 1)}">${content}</g>`;
     const ref = S.id + 'L' + kind;
-    let out = `<defs><g id="${ref}">${content}</g>`;
+    // Animated figures (o.cacheHair, set by the scenes) use the cached image; still pictures keep the plain paths, so the
+    // designer preview never waits for an image to decode while a slider moves.
+    let out = `<defs><g id="${ref}">${o.cacheHair ? layerImage(S, kind, content) : content}</g>`;
     const bands = hangBands(S.hang);
     bands.forEach((b, i) => { out += `<clipPath id="${ref}c${i}"><rect x="-100" y="${f(b.y0)}" width="400" height="${f(b.y1 - b.y0)}"/></clipPath>`; });
     out += '</defs>';

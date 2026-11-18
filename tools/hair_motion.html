@@ -67,7 +67,7 @@
       for (const [name, st] of STYLES) {
         const spec = Object.assign({}, P.NEUTRAL, { age: 'young', shirt: Object.keys(P.DESIGNER_SHIRTS)[2] }, LOOKS[look], st);
         const card = document.createElement('div'); card.className = 'card';
-        card.innerHTML = P.svg(spec, { facing }) + `<div>${name} · ${role === 'stranger' ? 'stranger' : 'known / unfamiliar'}</div><div class="state"></div>`;
+        card.innerHTML = P.svg(spec, { facing, cacheHair: true }) + `<div>${name} · ${role === 'stranger' ? 'stranger' : 'known / unfamiliar'}</div><div class="state"></div>`;
         row.appendChild(card);
         const g = G[role], at = role === 'stranger' ? g.other : g.stranger;
         rigs.push({ rig: new P.PersonRig(card.querySelector('svg'), spec, facing, at), at, obj: g.object, label: card.querySelector('.state') });

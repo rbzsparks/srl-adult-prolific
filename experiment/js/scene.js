@@ -55,8 +55,8 @@ SRL.scene = (function () {
         <path d="M792 169 L792 186 L808 169 Z M868 169 L868 186 L852 169 Z" fill="#9A7752"/>
         <rect x="760" y="160" width="140" height="9" rx="2" fill="#B08A64"/>
         <g class="sc-incidental">${O.incidentalSvg(sc.incidental, colorHex, `x="${POS.incidental.x}" y="${POS.incidental.y}" width="${POS.incidental.w}" height="${POS.incidental.h}"`)}</g>
-        <g class="sc-other">${P.svg(otherSpec, { facing: -1, attrs: pAttr(POS.other, POS.other.x) })}</g>
-        <g class="sc-stranger">${P.svg(sc.stranger, { facing: 1, attrs: pAttr(POS.stranger, POS.stranger.startX) })}</g>
+        <g class="sc-other">${P.svg(otherSpec, { facing: -1, cacheHair: true, attrs: pAttr(POS.other, POS.other.x) })}</g>
+        <g class="sc-stranger">${P.svg(sc.stranger, { facing: 1, cacheHair: true, attrs: pAttr(POS.stranger, POS.stranger.startX) })}</g>
         <rect x="452" y="548" width="96" height="12" rx="4" fill="#8A6644"/>
         <rect x="489" y="524" width="22" height="28" fill="#8A6644"/>
         <rect x="410" y="510" width="180" height="15" rx="6" fill="#A07A55"/>
