@@ -3,7 +3,7 @@
  * Edit this file, push to GitHub Pages, and the live study picks it up.
  * ===================================================================== */
 window.SRL_CONFIG = {
-  VERSION: '2.1.0',
+  VERSION: '2.1.1',
 
   /* ---------- Qualtrics ---------- */
   // 'legacy' = classic layouts (Flat / Modern / Classic): Qualtrics.SurveyEngine.setEmbeddedData
@@ -49,7 +49,7 @@ window.SRL_CONFIG = {
     SPACE_ENABLE_AFTER_LABEL: 1000,
     AUTO_ADVANCE_AFTER_LABEL: 15000,
     ISI: 500,
-    FILLER1: 15000,             // "Get ready" countdown screen before the scenes
+    FILLER1: 15000,             // "Get ready" countdown between the scene instructions and the first scene
     FILLER2: 45000,             // arithmetic verification after the scenes (retention delay)
     FILLER2_DEADLINE: 3000,     // response deadline per arithmetic problem (counts as an error if missed)
     TEST_ITI: 400

@@ -1,7 +1,7 @@
 /* progress.js: reload handling.
  * Stores ONLY a stage marker and a reload counter in localStorage, keyed by Prolific ID + study ID.
  * No responses and never the typed name.
- *   stage 'setup'  (setup, avatar, audio check, filler 1 countdown): a reload restarts the JS block; reload_pre_fam += 1
+ *   stage 'setup'  (setup, avatar, audio check): a reload restarts the JS block; reload_pre_fam += 1
  *   stage 'fam' | 'post_fam' | 'test' | 'done': a reload shows a message and skips to the post-test questions. */
 SRL.progress = (function () {
   const POST = ['fam', 'post_fam', 'test', 'done'];

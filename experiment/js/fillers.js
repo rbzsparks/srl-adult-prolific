@@ -1,5 +1,5 @@
 /* fillers.js
- * Filler 1: "Get ready" screen with a countdown (TIMING.FILLER1), then the scenes start automatically.
+ * Filler 1: "Get ready" screen with a countdown (TIMING.FILLER1), shown after the scene instructions; the first scene starts automatically.
  * Filler 2: arithmetic verification ("7 + 5 = 13?") for TIMING.FILLER2, with a per-problem response deadline
  * (TIMING.FILLER2_DEADLINE) shown as a countdown bar. A problem not answered in time counts as an error.
  * Accuracy = correct / attempted; below FILLER2_ENGAGEMENT_MIN sets the engagement flag. */
@@ -23,7 +23,7 @@ SRL.fillers = (function () {
 
   async function getReady(el, S, ms) {
     const pg = UI.page(el, `<div class="gr-wrap"><h1>Get ready</h1>
-      <p class="srl-lead">The next part starts in a moment.</p>
+      <p class="srl-lead">The first scene starts in a moment.</p>
       <div class="gr-count"></div><div class="srl-timer gr-bar"><div></div></div></div>`);
     const count = pg.querySelector('.gr-count');
     const t0 = U.now();

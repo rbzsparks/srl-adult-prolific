@@ -2,7 +2,7 @@
 
 jsPsych 8.2.1 experiment, embedded in a **Qualtrics** survey (classic layout), recruited on **Prolific**.
 Participants name someone they know (closeness category assigned between subjects), rate closeness (IOS), contact
-frequency and relationship duration, build an avatar of that person, get a 15-second "get ready" countdown, watch 12 animated
+frequency and relationship duration, build an avatar of that person, read the scene instructions, get a 15-second "get ready" countdown, watch 12 animated
 scenes with audio, do a 45-second arithmetic filler, and then take surprise memory tests for words, faces and incidental objects.
 
 Order of precedence for the design documents: `ANSWERS_ROUND2.md` > `UPDATES_v2.md` > `ANSWERS_FOR_CLAUDE_CODE.md` > `EXPERIMENT_SPEC.md`.
@@ -242,8 +242,8 @@ Inside the experiment block (Qualtrics handles consent, post-test, demographics 
 | 7 | Avatar designer: "Make an avatar that looks like [name]" (6 tabs: Skin → Face → Eyes → Nose & mouth → Hair → Extras; starts from a neutral face; "Reset this section"; no randomize) | `t_designer_ms`, `t_designer_<tab>_ms` |
 | 7b | Likeness: "How much does this avatar look like [name]?" (1–7) | `t_designer_ms` |
 | 8 | Sound check: "window", then "garden" on a second attempt. Case and spaces ignored; one letter off accepted | `t_audio_check_ms` |
-| 9 | Filler 1: "Get ready, the next part starts in a moment" with a countdown, 15 s; the scene instructions follow automatically | `t_filler1_ms` |
-| 10 | Scene instructions (surprise framing) + 12 scenes | `t_fam_ms` |
+| 9 | Scene instructions (surprise framing) | `t_fam_ms` |
+| 10 | Filler 1: "Get ready – The first scene starts in a moment" with a countdown, 15 s; the first scene then starts automatically. Then the 12 scenes | `t_filler1_ms` (countdown), `t_fam_ms` |
 | 11 | Filler 2: arithmetic verification (Y/N), fixed 45 s (retention delay before the tests). Each problem has a 3 s deadline shown by a shrinking bar under it; a missed deadline shows "Too slow" and counts as an error | `t_filler2_ms` |
 | 12 | "Questions about the scenes" → Word (12) → Face (12) → Incidental (12), each block with a short intro | `t_test_ms` |
 | 13 | "Click Continue to answer a few final questions" (data written to Qualtrics here) | |
