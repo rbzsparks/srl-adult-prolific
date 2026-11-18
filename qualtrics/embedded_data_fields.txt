@@ -43,12 +43,10 @@ t_designer_hair_ms
 t_designer_extras_ms
 audio_check_pass
 audio_check_attempts
-filler1_solved
-filler1_moves
-filler1_time_to_solve_ms
-filler1_n_solved
 filler2_accuracy
-filler2_n
+filler2_n_attempted
+filler2_n_timeout
+filler2_low_engagement
 fam_fast_advance_count
 fam_timeout_count
 fullscreen_exits
@@ -85,6 +83,7 @@ audio_simulated_scenes
 word_foil_vowel_relaxed
 js_error
 fam_01_scene_set_id
+fam_01_serial_position
 fam_01_condition
 fam_01_stranger_id
 fam_01_word
@@ -94,6 +93,7 @@ fam_01_view_ms
 fam_01_timed_out
 fam_01_label_audio_ms
 fam_02_scene_set_id
+fam_02_serial_position
 fam_02_condition
 fam_02_stranger_id
 fam_02_word
@@ -103,6 +103,7 @@ fam_02_view_ms
 fam_02_timed_out
 fam_02_label_audio_ms
 fam_03_scene_set_id
+fam_03_serial_position
 fam_03_condition
 fam_03_stranger_id
 fam_03_word
@@ -112,6 +113,7 @@ fam_03_view_ms
 fam_03_timed_out
 fam_03_label_audio_ms
 fam_04_scene_set_id
+fam_04_serial_position
 fam_04_condition
 fam_04_stranger_id
 fam_04_word
@@ -121,6 +123,7 @@ fam_04_view_ms
 fam_04_timed_out
 fam_04_label_audio_ms
 fam_05_scene_set_id
+fam_05_serial_position
 fam_05_condition
 fam_05_stranger_id
 fam_05_word
@@ -130,6 +133,7 @@ fam_05_view_ms
 fam_05_timed_out
 fam_05_label_audio_ms
 fam_06_scene_set_id
+fam_06_serial_position
 fam_06_condition
 fam_06_stranger_id
 fam_06_word
@@ -139,6 +143,7 @@ fam_06_view_ms
 fam_06_timed_out
 fam_06_label_audio_ms
 fam_07_scene_set_id
+fam_07_serial_position
 fam_07_condition
 fam_07_stranger_id
 fam_07_word
@@ -148,6 +153,7 @@ fam_07_view_ms
 fam_07_timed_out
 fam_07_label_audio_ms
 fam_08_scene_set_id
+fam_08_serial_position
 fam_08_condition
 fam_08_stranger_id
 fam_08_word
@@ -157,6 +163,7 @@ fam_08_view_ms
 fam_08_timed_out
 fam_08_label_audio_ms
 fam_09_scene_set_id
+fam_09_serial_position
 fam_09_condition
 fam_09_stranger_id
 fam_09_word
@@ -166,6 +173,7 @@ fam_09_view_ms
 fam_09_timed_out
 fam_09_label_audio_ms
 fam_10_scene_set_id
+fam_10_serial_position
 fam_10_condition
 fam_10_stranger_id
 fam_10_word
@@ -175,6 +183,7 @@ fam_10_view_ms
 fam_10_timed_out
 fam_10_label_audio_ms
 fam_11_scene_set_id
+fam_11_serial_position
 fam_11_condition
 fam_11_stranger_id
 fam_11_word
@@ -184,6 +193,7 @@ fam_11_view_ms
 fam_11_timed_out
 fam_11_label_audio_ms
 fam_12_scene_set_id
+fam_12_serial_position
 fam_12_condition
 fam_12_stranger_id
 fam_12_word

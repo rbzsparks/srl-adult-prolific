@@ -2,8 +2,8 @@
 
 jsPsych 8.2.1 experiment, embedded in a **Qualtrics** survey (classic layout), recruited on **Prolific**.
 Participants name someone they know (closeness category assigned between subjects), rate closeness (IOS), contact
-frequency and relationship duration, build an avatar of that person, do a sliding puzzle, watch 12 animated
-scenes with audio, do an arithmetic filler, and then take surprise memory tests for words, faces and incidental objects.
+frequency and relationship duration, build an avatar of that person, get a 15-second "get ready" countdown, watch 12 animated
+scenes with audio, do a 45-second arithmetic filler, and then take surprise memory tests for words, faces and incidental objects.
 
 Order of precedence for the design documents: `ANSWERS_ROUND2.md` > `UPDATES_v2.md` > `ANSWERS_FOR_CLAUDE_CODE.md` > `EXPERIMENT_SPEC.md`.
 
@@ -47,7 +47,7 @@ experiment/                  ← publish this folder on GitHub Pages
   js/avatar_rules.js         unfamiliar-person rule, natural hair-colour scale, similar styles, foil maker + checks
   js/objects.js              novel objects (12) and recolorable incidental objects (12)
   js/scene.js                animated familiarization scene, AOIs, MouseView option
-  js/fillers.js              sliding puzzle; arithmetic verification
+  js/fillers.js              "get ready" countdown; arithmetic verification
   js/tests.js                word / face / incidental tests
   js/stimuli.js              loads stimuli.json; lists, orders, foils
   js/audio.js                Web Audio preload, playback, amplitude lip-sync, pause segmentation
@@ -91,7 +91,7 @@ Then open `http://localhost:8000/experiment/index.html?debug=1`. URL parameters:
 | `PROLIFIC_PID`, `STUDY_ID`, `SESSION_ID` | as Prolific sends them |
 | `category` | `acquaintance` \| `moderate` \| `close` (random if missing) |
 | `list` | `A` \| `B` (random if missing) |
-| `debug=1` | fillers shortened to 15 s; condition / stimulus IDs shown on screen; no DataPipe; data downloaded |
+| `debug=1` | fillers shortened (countdown 5 s, arithmetic 15 s); condition / stimulus IDs shown on screen; no DataPipe; data downloaded |
 | `name_label` | `0` hides / `1` shows the name text beneath the person in scenes (overrides `SHOW_NAME_LABEL`) |
 | `auto=1` | with `debug=1`: autopilot clicks through the whole study (~3–4 min) |
 | `devsave=1` | with the dev server: write output files into `sample_data/` instead of downloading |
@@ -146,9 +146,9 @@ Example full walkthrough: `…/index.html?debug=1&auto=1&devsave=1&PROLIFIC_PID=
 
 Survey flow in the .qsf:
 
-1. **Embedded Data**: `PROLIFIC_PID`, `STUDY_ID`, `SESSION_ID`, `debug`, `name_label` (from the URL), plus every field the experiment writes (380 fields in total; listed in `qualtrics/embedded_data_fields.txt`).
+1. **Embedded Data**: `PROLIFIC_PID`, `STUDY_ID`, `SESSION_ID`, `debug`, `name_label` (from the URL), plus every field the experiment writes (390 fields in total; listed in `qualtrics/embedded_data_fields.txt`).
 2. **Device check** (JS, before consent): mobile/tablet (by user agent), or a screen smaller than 1024 × 650 physical pixels (either orientation; measured as CSS pixels × `devicePixelRatio`, so Windows display scaling or browser zoom doesn't fail an ordinary laptop) → message showing the detected reason and screen size → **End of Survey → redirect to `…/complete?cc=SCREENOUT_CODE`**. Qualtrics' preview has a **Mobile view** toggle; with it on, a phone-sized frame is shown, so preview with it off.
-3. **Consent** (placeholder text, shows the ~20 min estimate). "I do not agree" → "Please return this study on Prolific" (no Next button, no code).
+3. **Consent** (placeholder text, shows the ~19 min estimate). "I do not agree" → "Please return this study on Prolific" (no Next button, no code).
 4. **Randomizer**: present 1 of 6, **evenly present** on. Each element sets `category` (acquaintance / moderate / close) × `list` (A / B).
 5. **Experiment (JS)**: one question whose JS loads the experiment from `BASE_URL`; the Next button is hidden and clicked automatically when the participant finishes.
 6. **Post-test questions**: expected a test? (Yes / No / Not sure), strategy (optional text), 2 experience items with 2 attention checks between them, technical problems (optional).
@@ -199,7 +199,7 @@ fields appear in the data.
 - Study URL: `https://<your>.qualtrics.com/jfe/form/SV_xxx?PROLIFIC_PID={{%PROLIFIC_PID%}}&STUDY_ID={{%STUDY_ID%}}&SESSION_ID={{%SESSION_ID%}}`
 - Device filter: **Desktop only**. Listing text: **"Requires audio (headphones or speakers)."**
 - Completion code: the same `COMPLETION_CODE` as in the .qsf. Screen-out code (device check only): `SCREENOUT_CODE`.
-- Duration estimate shown on the consent page: about 20 min (`ESTIMATED_MINUTES`; 17 before the v2 designer). Confirm it with the pilot (`total_ms`, `t_*_ms`, and Qualtrics `Duration`), then set pay at or above Prolific's recommended rate.
+- Duration estimate shown on the consent page: about 19 min (`ESTIMATED_MINUTES`; 20 in v2.0, before the fillers were shortened; 17 before the v2 designer). Confirm it with the pilot (`total_ms`, `t_*_ms`, and Qualtrics `Duration`), then set pay at or above Prolific's recommended rate.
 
 ## 6. Configuration and [DECISION] flags
 
@@ -216,8 +216,9 @@ All in `experiment/config.js`.
 | `TEST_BLOCK_ORDER_MODE` | `'fixed'` | fixed `word → face → incid`; `'counterbalanced'` = random of the 6 orders; recorded as `test_block_order` |
 | `CONFIDENCE_RATINGS` | `false` | 1–4 after each test trial (JSON backup only) |
 | `AUDIO_CHECK_EXCLUDES` | `false` | failed audio check is flagged only |
-| `TIMING.*` | spec values | stranger entry 600 ms; response 900 ms; SPACE enabled 1 s after the label audio ends; auto-advance 15 s after it ends; ISI 500 ms; fillers 30 s / 90 s |
-| `DEBUG_TIMING` | fillers 15 s | applied with `debug=1` |
+| `TIMING.*` | spec values | stranger entry 600 ms; response 900 ms; SPACE enabled 1 s after the label audio ends; auto-advance 15 s after it ends; ISI 500 ms; `FILLER1` 15 s (countdown); `FILLER2` 45 s (arithmetic) with `FILLER2_DEADLINE` 3 s per problem |
+| `FILLER2_ENGAGEMENT_MIN` | `0.70` | arithmetic accuracy below this sets `filler2_low_engagement = 1` |
+| `DEBUG_TIMING` | countdown 5 s, arithmetic 15 s | applied with `debug=1` |
 | `DEVICE` | 1024 × 650 screen; window prompt below 1000 × 600 | small windows get a "please maximize" prompt, never a rejection |
 | `AVATAR_UNFAM_K`, `AVATAR_UNFAM_K_BALD_NO_FACIAL_HAIR`, `AVATAR_UNFAM_STEP`, `AVATAR_UNFAM_COLOUR_MAX_STEPS` | 4, 5, 0.35, 2 | unfamiliar-person rule (§9 People) |
 | `FOIL_K`, `FOIL_STEP` | 4, 0.35 | read only by `tools/make_foils.html`; foils are frozen in `stimuli.json` (§9 People) |
@@ -241,9 +242,9 @@ Inside the experiment block (Qualtrics handles consent, post-test, demographics 
 | 7 | Avatar designer: "Make an avatar that looks like [name]" (6 tabs: Skin → Face → Eyes → Nose & mouth → Hair → Extras; starts from a neutral face; "Reset this section"; no randomize) | `t_designer_ms`, `t_designer_<tab>_ms` |
 | 7b | Likeness: "How much does this avatar look like [name]?" (1–7) | `t_designer_ms` |
 | 8 | Sound check: "window", then "garden" on a second attempt. Case and spaces ignored; one letter off accepted | `t_audio_check_ms` |
-| 9 | Filler 1: 3 × 3 sliding puzzle, fixed 30 s (a new puzzle appears if solved early) | `t_filler1_ms` |
+| 9 | Filler 1: "Get ready, the next part starts in a moment" with a countdown, 15 s; the scene instructions follow automatically | `t_filler1_ms` |
 | 10 | Scene instructions (surprise framing) + 12 scenes | `t_fam_ms` |
-| 11 | Filler 2: arithmetic verification (Y/N), fixed 90 s (retention delay before the tests) | `t_filler2_ms` |
+| 11 | Filler 2: arithmetic verification (Y/N), fixed 45 s (retention delay before the tests). Each problem has a 3 s deadline shown by a shrinking bar under it; a missed deadline shows "Too slow" and counts as an error | `t_filler2_ms` |
 | 12 | "Questions about the scenes" → Word (12) → Face (12) → Incidental (12), each block with a short intro | `t_test_ms` |
 | 13 | "Click Continue to answer a few final questions" (data written to Qualtrics here) | |
 
@@ -262,8 +263,8 @@ Inside the experiment block (Qualtrics handles consent, post-test, demographics 
 6. "Press SPACE to continue" appears **1 s after the label audio ends**. **`view_ms` = keypress time − label-audio end.** The scene auto-advances 15 s after the label audio ends (`timed_out = 1`). Then a 500 ms blank.
 
 **Measured in debug runs** (placeholder audio, fillers shortened): one scene ≈ 7.6–8.6 s with an immediate keypress.
-The real-length experiment block is about 3 min setup + 3–5 min designer and likeness (v2) + 0.5 min sound check + 0.5 min puzzle +
-2–4 min scenes + 1.5 min arithmetic + 3–4 min tests ≈ 13.5–18.5 min. With consent and post-test, about 18–21 min.
+The real-length experiment block is about 3 min setup + 3–5 min designer and likeness (v2) + 0.5 min sound check + 0.25 min countdown +
+2–4 min scenes + 1 min arithmetic (with instructions) + 3–4 min tests ≈ 12.75–17.75 min. With consent and post-test, about 17–20 min.
 **Confirm with the pilot.**
 
 **Final-frame AOIs** (stage coordinates, 0–1, `[x0, y0, x1, y1]`; also stored in the JSON backup as `aoi_norm`):
@@ -281,7 +282,7 @@ The real-length experiment block is about 3 min setup + 3–5 min designer and l
 - **Lists:** list A: scene sets s01–s06 = known, s07–s12 = unfamiliar. List B: swapped. Scene sets are matched in pairs (s01/s07, s02/s08, …) on gender presentation, apparent age and skin-tone band. So within each list, the 6 known and the 6 unfamiliar scenes each have 3 female-presenting and 3 male-presenting strangers, covering the same 6 skin tones and the same age spread (2 young, 2 middle-aged, 2 older).
 - **Per participant (seeded RNG; `seed` is recorded, so every assignment can be reconstructed):**
   - incidental color per object type
-  - familiarization order (pseudorandom, at most 2 consecutive scenes of the same condition)
+  - familiarization order (pseudorandom: at most 2 consecutive scenes of the same condition, and the **last 2 scenes are one known-person and one unfamiliar-person scene**, in random order, so recency is equal across conditions). Each scene's position is recorded as `serial_position` (1–12)
   - test order within each block
   - option positions
   - word-test foils
@@ -473,12 +474,10 @@ python analysis/reshape_qualtrics.py export.csv -o long.csv
 | `unfamiliar_name` | name shown under the unfamiliar person |
 | `audio_check_pass` | 1 if either check word was typed correctly (one letter off accepted) |
 | `audio_check_attempts` | 1–2 |
-| `filler1_solved` | 1 if the first sliding puzzle was solved within the time limit (30 s) |
-| `filler1_moves` | moves made on the first puzzle |
-| `filler1_time_to_solve_ms` | time to solve the first puzzle (blank if unsolved) |
-| `filler1_n_solved` | number of puzzles solved |
-| `filler2_accuracy` | arithmetic accuracy (engagement check; flag < 0.70) |
-| `filler2_n` | number of arithmetic items answered |
+| `filler2_accuracy` | arithmetic accuracy = correct / attempted (missed deadlines count as errors) |
+| `filler2_n_attempted` | problems attempted: answered or timed out (a problem cut off by the end of the 45 s is not counted) |
+| `filler2_n_timeout` | problems not answered within the 3 s deadline (answered = attempted − timeout) |
+| `filler2_low_engagement` | 1 if `filler2_accuracy` < `FILLER2_ENGAGEMENT_MIN` (0.70), or nothing was attempted |
 | `fam_fast_advance_count` | scenes advanced within 300 ms of SPACE being enabled |
 | `fam_timeout_count` | scenes that auto-advanced |
 | `fullscreen_exits`, `tab_switches` | counts during the JS block (timestamps are in the JSON `events`) |
@@ -503,6 +502,7 @@ python analysis/reshape_qualtrics.py export.csv -o long.csv
 | Suffix | Meaning |
 |---|---|
 | `scene_set_id` | s01–s12 |
+| `serial_position` | 1–12, the same as XX (stated explicitly for analysis; the reshape script also puts it on every test row of that scene set) |
 | `condition` | known / unfamiliar |
 | `stranger_id` | str01–str12 |
 | `word` | novel word |
@@ -523,19 +523,19 @@ python analysis/reshape_qualtrics.py export.csv -o long.csv
 
 The JSON backup (`full_data_json_*`) adds, per test trial:
 - `response_position`, `option_order`, `foil_conditions`, `foil_scene_sets`
-- `responded_before_prompt_end`, `vowel_rule_met`, `block_index`, `confidence`
+- `responded_before_prompt_end`, `vowel_rule_met`, `block_index`, `confidence`, `serial_position` (the scene set's familiarization position)
 
 and per scene:
 - `greet_audio_ms`, `label_segments_s`, `label_segment_source`, `audio_simulated`, `scene_total_ms`
 - `dwell_*_ms` (MouseView)
 
-It also has every arithmetic trial (`filler2`), all fullscreen and visibility events with timestamps (`events`), and the design
+It also has every arithmetic trial (`filler2`: equation, truth, response, `timed_out`, `correct`, `rt_ms`), all fullscreen and visibility events with timestamps (`events`), and the design
 (`fam_order`, `incidental_colors`, `aoi_norm`, `assign_fallback`, `finish_reason`).
 
 ### Long format (output of `reshape_qualtrics.py`)
 
 The participant columns above, plus:
-- `phase`, `trial_index`, `scene_set_id`, `condition`, `stranger_id`, `word`, `incidental_type`, `incidental_color`
+- `phase`, `trial_index`, `serial_position` (familiarization position of the scene set), `scene_set_id`, `condition`, `stranger_id`, `word`, `incidental_type`, `incidental_color`
 - familiarization rows: `viewing_time_ms`, `timed_out`, `label_audio_ms`
 - test rows: `test_type`, `target_id`, `foil_ids`, `target_position`, `response_id_choice`, `correct`, `rt_ms`
 - model coding: `k` (closeness: IOS − 1 for known, 0 for unfamiliar) and `f` (target / incidental)
@@ -545,7 +545,7 @@ The participant columns above, plus:
 These are recorded, not enforced: the preregistered rules decide.
 
 - **Attention checks:** `attention_check_1` (should be 1) and `attention_check_2` (should be 4).
-- **Engagement:** `filler2_accuracy` < 0.70.
+- **Engagement:** `filler2_low_engagement` = 1 (`filler2_accuracy` < 0.70; missed 3 s deadlines count as errors). See `filler2_n_attempted` and `filler2_n_timeout` too.
 - **Familiarization:** `fam_fast_advance_count` > 6 or many `fam_timeout_count`.
 - **Display:** `fullscreen_exits`, `tab_switches` (with timestamps in the JSON).
 - **Name:** `name_flagged_title`, `name_suspect`.

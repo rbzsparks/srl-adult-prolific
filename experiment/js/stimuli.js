@@ -20,7 +20,8 @@ SRL.stimuli = (function () {
     return ids;
   }
 
-  // Pseudorandom order: no more than 2 consecutive scenes of the same condition.
+  // Pseudorandom order: no more than 2 consecutive scenes of the same condition, and the last 2 scenes are one known-person
+  // and one unfamiliar-person scene (in random order), so recency affects both conditions equally.
   function famOrder(sets) {
     for (let attempt = 0; attempt < 5000; attempt++) {
       const o = U.shuffle(sets);
@@ -28,7 +29,7 @@ SRL.stimuli = (function () {
       for (let i = 2; i < o.length; i++) {
         if (o[i].condition === o[i - 1].condition && o[i].condition === o[i - 2].condition) { ok = false; break; }
       }
-      if (ok) return o;
+      if (ok && o[o.length - 1].condition !== o[o.length - 2].condition) return o;
     }
     throw new Error('Could not build familiarization order');
   }

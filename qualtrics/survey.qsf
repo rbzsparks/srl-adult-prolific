@@ -574,38 +574,6 @@
         "AnalyzeText": false
        },
        {
-        "Description": "filler1_solved",
-        "Type": "Recipient",
-        "Field": "filler1_solved",
-        "VariableType": "String",
-        "DataVisibility": [],
-        "AnalyzeText": false
-       },
-       {
-        "Description": "filler1_moves",
-        "Type": "Recipient",
-        "Field": "filler1_moves",
-        "VariableType": "String",
-        "DataVisibility": [],
-        "AnalyzeText": false
-       },
-       {
-        "Description": "filler1_time_to_solve_ms",
-        "Type": "Recipient",
-        "Field": "filler1_time_to_solve_ms",
-        "VariableType": "String",
-        "DataVisibility": [],
-        "AnalyzeText": false
-       },
-       {
-        "Description": "filler1_n_solved",
-        "Type": "Recipient",
-        "Field": "filler1_n_solved",
-        "VariableType": "String",
-        "DataVisibility": [],
-        "AnalyzeText": false
-       },
-       {
         "Description": "filler2_accuracy",
         "Type": "Recipient",
         "Field": "filler2_accuracy",
@@ -614,9 +582,25 @@
         "AnalyzeText": false
        },
        {
-        "Description": "filler2_n",
+        "Description": "filler2_n_attempted",
         "Type": "Recipient",
-        "Field": "filler2_n",
+        "Field": "filler2_n_attempted",
+        "VariableType": "String",
+        "DataVisibility": [],
+        "AnalyzeText": false
+       },
+       {
+        "Description": "filler2_n_timeout",
+        "Type": "Recipient",
+        "Field": "filler2_n_timeout",
+        "VariableType": "String",
+        "DataVisibility": [],
+        "AnalyzeText": false
+       },
+       {
+        "Description": "filler2_low_engagement",
+        "Type": "Recipient",
+        "Field": "filler2_low_engagement",
         "VariableType": "String",
         "DataVisibility": [],
         "AnalyzeText": false
@@ -910,6 +894,14 @@
         "AnalyzeText": false
        },
        {
+        "Description": "fam_01_serial_position",
+        "Type": "Recipient",
+        "Field": "fam_01_serial_position",
+        "VariableType": "String",
+        "DataVisibility": [],
+        "AnalyzeText": false
+       },
+       {
         "Description": "fam_01_condition",
         "Type": "Recipient",
         "Field": "fam_01_condition",
@@ -977,6 +969,14 @@
         "Description": "fam_02_scene_set_id",
         "Type": "Recipient",
         "Field": "fam_02_scene_set_id",
+        "VariableType": "String",
+        "DataVisibility": [],
+        "AnalyzeText": false
+       },
+       {
+        "Description": "fam_02_serial_position",
+        "Type": "Recipient",
+        "Field": "fam_02_serial_position",
         "VariableType": "String",
         "DataVisibility": [],
         "AnalyzeText": false
@@ -1054,6 +1054,14 @@
         "AnalyzeText": false
        },
        {
+        "Description": "fam_03_serial_position",
+        "Type": "Recipient",
+        "Field": "fam_03_serial_position",
+        "VariableType": "String",
+        "DataVisibility": [],
+        "AnalyzeText": false
+       },
+       {
         "Description": "fam_03_condition",
         "Type": "Recipient",
         "Field": "fam_03_condition",
@@ -1121,6 +1129,14 @@
         "Description": "fam_04_scene_set_id",
         "Type": "Recipient",
         "Field": "fam_04_scene_set_id",
+        "VariableType": "String",
+        "DataVisibility": [],
+        "AnalyzeText": false
+       },
+       {
+        "Description": "fam_04_serial_position",
+        "Type": "Recipient",
+        "Field": "fam_04_serial_position",
         "VariableType": "String",
         "DataVisibility": [],
         "AnalyzeText": false
@@ -1198,6 +1214,14 @@
         "AnalyzeText": false
        },
        {
+        "Description": "fam_05_serial_position",
+        "Type": "Recipient",
+        "Field": "fam_05_serial_position",
+        "VariableType": "String",
+        "DataVisibility": [],
+        "AnalyzeText": false
+       },
+       {
         "Description": "fam_05_condition",
         "Type": "Recipient",
         "Field": "fam_05_condition",
@@ -1265,6 +1289,14 @@
         "Description": "fam_06_scene_set_id",
         "Type": "Recipient",
         "Field": "fam_06_scene_set_id",
+        "VariableType": "String",
+        "DataVisibility": [],
+        "AnalyzeText": false
+       },
+       {
+        "Description": "fam_06_serial_position",
+        "Type": "Recipient",
+        "Field": "fam_06_serial_position",
         "VariableType": "String",
         "DataVisibility": [],
         "AnalyzeText": false
@@ -1342,6 +1374,14 @@
         "AnalyzeText": false
        },
        {
+        "Description": "fam_07_serial_position",
+        "Type": "Recipient",
+        "Field": "fam_07_serial_position",
+        "VariableType": "String",
+        "DataVisibility": [],
+        "AnalyzeText": false
+       },
+       {
         "Description": "fam_07_condition",
         "Type": "Recipient",
         "Field": "fam_07_condition",
@@ -1409,6 +1449,14 @@
         "Description": "fam_08_scene_set_id",
         "Type": "Recipient",
         "Field": "fam_08_scene_set_id",
+        "VariableType": "String",
+        "DataVisibility": [],
+        "AnalyzeText": false
+       },
+       {
+        "Description": "fam_08_serial_position",
+        "Type": "Recipient",
+        "Field": "fam_08_serial_position",
         "VariableType": "String",
         "DataVisibility": [],
         "AnalyzeText": false
@@ -1486,6 +1534,14 @@
         "AnalyzeText": false
        },
        {
+        "Description": "fam_09_serial_position",
+        "Type": "Recipient",
+        "Field": "fam_09_serial_position",
+        "VariableType": "String",
+        "DataVisibility": [],
+        "AnalyzeText": false
+       },
+       {
         "Description": "fam_09_condition",
         "Type": "Recipient",
         "Field": "fam_09_condition",
@@ -1553,6 +1609,14 @@
         "Description": "fam_10_scene_set_id",
         "Type": "Recipient",
         "Field": "fam_10_scene_set_id",
+        "VariableType": "String",
+        "DataVisibility": [],
+        "AnalyzeText": false
+       },
+       {
+        "Description": "fam_10_serial_position",
+        "Type": "Recipient",
+        "Field": "fam_10_serial_position",
         "VariableType": "String",
         "DataVisibility": [],
         "AnalyzeText": false
@@ -1630,6 +1694,14 @@
         "AnalyzeText": false
        },
        {
+        "Description": "fam_11_serial_position",
+        "Type": "Recipient",
+        "Field": "fam_11_serial_position",
+        "VariableType": "String",
+        "DataVisibility": [],
+        "AnalyzeText": false
+       },
+       {
         "Description": "fam_11_condition",
         "Type": "Recipient",
         "Field": "fam_11_condition",
@@ -1697,6 +1769,14 @@
         "Description": "fam_12_scene_set_id",
         "Type": "Recipient",
         "Field": "fam_12_scene_set_id",
+        "VariableType": "String",
+        "DataVisibility": [],
+        "AnalyzeText": false
+       },
+       {
+        "Description": "fam_12_serial_position",
+        "Type": "Recipient",
+        "Field": "fam_12_serial_position",
         "VariableType": "String",
         "DataVisibility": [],
         "AnalyzeText": false
@@ -3657,7 +3737,7 @@
    "SecondaryAttribute": "consent_text",
    "TertiaryAttribute": null,
    "Payload": {
-    "QuestionText": "<p><b>[PLACEHOLDER: IRB-APPROVED CONSENT TEXT]</b></p><p>This study takes about <b>20 minutes</b>. It requires <b>sound</b> (headphones or speakers) and a desktop or laptop computer.</p><p>[Purpose, procedures, risks, benefits, compensation, confidentiality, voluntary participation, contact information.]</p>",
+    "QuestionText": "<p><b>[PLACEHOLDER: IRB-APPROVED CONSENT TEXT]</b></p><p>This study takes about <b>19 minutes</b>. It requires <b>sound</b> (headphones or speakers) and a desktop or laptop computer.</p><p>[Purpose, procedures, risks, benefits, compensation, confidentiality, voluntary participation, contact information.]</p>",
     "DataExportTag": "consent_text",
     "QuestionType": "DB",
     "Selector": "TB",
@@ -3791,7 +3871,7 @@
      "Private": false,
      "Hidden": false
     },
-    "QuestionJS": "Qualtrics.SurveyEngine.addOnload(function () {\n  /* Loads the externally hosted experiment (GitHub Pages). Edit BASE_URL / VERSION here if they change. */\n  var q = this;\n  q.hideNextButton();\n  if (q.hidePreviousButton) { q.hidePreviousButton(); }\n  var BASE_URL = 'https://rbzsparks.github.io/srl-adult-prolific/experiment/';\n  var VERSION = '2.0.1';\n  var params = {\n    PROLIFIC_PID: \"${e://Field/PROLIFIC_PID}\", STUDY_ID: \"${e://Field/STUDY_ID}\", SESSION_ID: \"${e://Field/SESSION_ID}\",\n    category: \"${e://Field/category}\", list: \"${e://Field/list}\", debug: \"${e://Field/debug}\", name_label: \"${e://Field/name_label}\", ResponseID: \"${e://Field/ResponseID}\"\n  };\n  function fail(e) {\n    var c = q.getQuestionContainer ? q.getQuestionContainer() : document.body;\n    c.innerHTML = '<p style=\"font-size:18px;line-height:1.5\">Sorry, the study could not load. Please check your internet connection and reload this page. ' +\n      'If this keeps happening, please contact the researchers through Prolific.</p>';\n  }\n  var s = document.createElement('script');\n  s.src = BASE_URL + 'js/loader.js?v=' + VERSION;\n  s.onload = function () {\n    window.SRL_LOAD({ base: BASE_URL, mode: 'qualtrics', params: params, version: VERSION,\n      finish: function () { q.clickNextButton(); }, onError: fail });\n  };\n  s.onerror = fail;\n  document.head.appendChild(s);\n});\n"
+    "QuestionJS": "Qualtrics.SurveyEngine.addOnload(function () {\n  /* Loads the externally hosted experiment (GitHub Pages). Edit BASE_URL / VERSION here if they change. */\n  var q = this;\n  q.hideNextButton();\n  if (q.hidePreviousButton) { q.hidePreviousButton(); }\n  var BASE_URL = 'https://rbzsparks.github.io/srl-adult-prolific/experiment/';\n  var VERSION = '2.1.0';\n  var params = {\n    PROLIFIC_PID: \"${e://Field/PROLIFIC_PID}\", STUDY_ID: \"${e://Field/STUDY_ID}\", SESSION_ID: \"${e://Field/SESSION_ID}\",\n    category: \"${e://Field/category}\", list: \"${e://Field/list}\", debug: \"${e://Field/debug}\", name_label: \"${e://Field/name_label}\", ResponseID: \"${e://Field/ResponseID}\"\n  };\n  function fail(e) {\n    var c = q.getQuestionContainer ? q.getQuestionContainer() : document.body;\n    c.innerHTML = '<p style=\"font-size:18px;line-height:1.5\">Sorry, the study could not load. Please check your internet connection and reload this page. ' +\n      'If this keeps happening, please contact the researchers through Prolific.</p>';\n  }\n  var s = document.createElement('script');\n  s.src = BASE_URL + 'js/loader.js?v=' + VERSION;\n  s.onload = function () {\n    window.SRL_LOAD({ base: BASE_URL, mode: 'qualtrics', params: params, version: VERSION,\n      finish: function () { q.clickNextButton(); }, onError: fail });\n  };\n  s.onerror = fail;\n  document.head.appendChild(s);\n});\n"
    }
   },
   {

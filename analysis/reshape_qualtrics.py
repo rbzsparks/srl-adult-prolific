@@ -74,11 +74,11 @@ LONG_COLS = [
     'relationship_type', 'is_kin', 'ios', 'contact_freq', 'duration', 'name_length', 'name_flagged_title', 'name_suspect',
     'known_avatar', 'unfamiliar_avatar', 'unfam_changes', 'unfam_k', 'unfam_identity_dist', 'unfamiliar_name',
     'likeness_rating', 'likeness_rt_ms', 'designer_edits', 'designer_resets', 'designer_tabs_visited', 't_designer_ms', 'audio_check_pass',
-    'filler1_solved', 'filler1_moves', 'filler2_accuracy', 'fam_fast_advance_count', 'fam_timeout_count',
+    'filler2_accuracy', 'filler2_n_attempted', 'filler2_n_timeout', 'filler2_low_engagement', 'fam_fast_advance_count', 'fam_timeout_count',
     'fullscreen_exits', 'tab_switches', 'reload_pre_fam', 'reloaded_post_fam', 'browser', 'screen_w', 'screen_h', 'total_ms',
     'expected_test', 'strategy', 'attention_check_1', 'attention_check_2', 'age', 'gender',
     # trial level
-    'phase', 'trial_index', 'scene_set_id', 'condition', 'stranger_id', 'word', 'incidental_type', 'incidental_color',
+    'phase', 'trial_index', 'serial_position', 'scene_set_id', 'condition', 'stranger_id', 'word', 'incidental_type', 'incidental_color',
     'viewing_time_ms', 'timed_out', 'label_audio_ms',
     'test_type', 'target_id', 'foil_ids', 'target_position', 'response_id_choice', 'correct', 'rt_ms',
     'k', 'f'
@@ -86,7 +86,8 @@ LONG_COLS = [
 PCOLS_FROM_ED = ['category', 'list', 'test_block_order', 'surprise_test', 'name_label_shown', 'mouseview_on', 'relationship_type', 'is_kin', 'ios',
                  'contact_freq', 'duration', 'name_length', 'name_flagged_title', 'name_suspect', 'known_avatar', 'unfamiliar_avatar',
                  'unfam_changes', 'unfam_k', 'unfam_identity_dist', 'unfamiliar_name', 'likeness_rating', 'likeness_rt_ms',
-                 'designer_edits', 'designer_resets', 'designer_tabs_visited', 't_designer_ms', 'audio_check_pass', 'filler1_solved', 'filler1_moves', 'filler2_accuracy',
+                 'designer_edits', 'designer_resets', 'designer_tabs_visited', 't_designer_ms', 'audio_check_pass', 'filler2_accuracy',
+                 'filler2_n_attempted', 'filler2_n_timeout', 'filler2_low_engagement',
                  'fam_fast_advance_count', 'fam_timeout_count', 'fullscreen_exits', 'tab_switches', 'reload_pre_fam',
                  'reloaded_post_fam', 'browser', 'screen_w', 'screen_h', 'total_ms']
 NATIVE = {'prolific_pid': 'PROLIFIC_PID', 'study_id': 'STUDY_ID', 'session_id': 'SESSION_ID', 'response_id': 'ResponseId',
@@ -121,7 +122,7 @@ def reshape(recs, F, include_incomplete=False, include_debug=False):
             p = f"{F['fam_prefix']}{i:02d}_"
             if not d.get(p + 'scene_set_id'):
                 continue
-            row = dict(base, phase='familiarization', trial_index=i, scene_set_id=d[p + 'scene_set_id'], condition=d[p + 'condition'],
+            row = dict(base, phase='familiarization', trial_index=i, serial_position=d.get(p + 'serial_position') or i, scene_set_id=d[p + 'scene_set_id'], condition=d[p + 'condition'],
                        stranger_id=d[p + 'stranger_id'], word=d[p + 'word'], incidental_type=d[p + 'incidental_type'],
                        incidental_color=d[p + 'incidental_color'], viewing_time_ms=d[p + 'view_ms'], timed_out=d[p + 'timed_out'],
                        label_audio_ms=d[p + 'label_audio_ms'])
@@ -139,7 +140,7 @@ def reshape(recs, F, include_incomplete=False, include_debug=False):
                 fi = fam.get(sid, {})
                 cond = fi.get('condition', '')
                 k = (ios - 1) if (cond == 'known' and ios is not None) else (0 if cond == 'unfamiliar' else '')
-                tests.append(dict(base, phase='test', trial_index=n, scene_set_id=sid, condition=cond, stranger_id=fi.get('stranger_id', ''),
+                tests.append(dict(base, phase='test', trial_index=n, serial_position=fi.get('serial_position', ''), scene_set_id=sid, condition=cond, stranger_id=fi.get('stranger_id', ''),
                                   word=fi.get('word', ''), incidental_type=fi.get('incidental_type', ''), incidental_color=fi.get('incidental_color', ''),
                                   test_type=t, target_id={'word': '', 'face': fi.get('stranger_id', ''), 'incid': fi.get('incidental_color', '')}[t],
                                   foil_ids=d[p + 'foils'], target_position=d[p + 'position'], response_id_choice=d[p + 'choice'],

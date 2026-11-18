@@ -3,7 +3,7 @@
  * Edit this file, push to GitHub Pages, and the live study picks it up.
  * ===================================================================== */
 window.SRL_CONFIG = {
-  VERSION: '2.0.1',
+  VERSION: '2.1.0',
 
   /* ---------- Qualtrics ---------- */
   // 'legacy' = classic layouts (Flat / Modern / Classic): Qualtrics.SurveyEngine.setEmbeddedData
@@ -49,15 +49,17 @@ window.SRL_CONFIG = {
     SPACE_ENABLE_AFTER_LABEL: 1000,
     AUTO_ADVANCE_AFTER_LABEL: 15000,
     ISI: 500,
-    FILLER1: 30000,             // sliding-tile puzzle, fixed duration
-    FILLER2: 90000,             // arithmetic verification, fixed duration
+    FILLER1: 15000,             // "Get ready" countdown screen before the scenes
+    FILLER2: 45000,             // arithmetic verification after the scenes (retention delay)
+    FILLER2_DEADLINE: 3000,     // response deadline per arithmetic problem (counts as an error if missed)
     TEST_ITI: 400
   },
   // Overrides applied when ?debug=1 (or Qualtrics embedded field debug=1)
   DEBUG_TIMING: {
-    FILLER1: 15000,
+    FILLER1: 5000,
     FILLER2: 15000
   },
+  FILLER2_ENGAGEMENT_MIN: 0.70, // filler2_low_engagement = 1 when arithmetic accuracy is below this
 
   /* ---------- Device ---------- */
   DEVICE: {
@@ -110,5 +112,5 @@ window.SRL_CONFIG = {
   STIMULI_JSON: 'stimuli/stimuli.json',
 
   /* ---------- Copy ---------- */
-  ESTIMATED_MINUTES: 20
+  ESTIMATED_MINUTES: 19
 };

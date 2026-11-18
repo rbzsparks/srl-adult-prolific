@@ -111,7 +111,7 @@ HIDE_NEXT_JS = """Qualtrics.SurveyEngine.addOnload(function () { this.hideNextBu
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument('--base-url', default='https://rbzsparks.github.io/REPO_NAME/experiment/')
+    ap.add_argument('--base-url', default='https://rbzsparks.github.io/srl-adult-prolific/experiment/')
     ap.add_argument('--engine', choices=['legacy', 'nste'], default='legacy')
     ap.add_argument('--completion-code', default=config_value('COMPLETION_CODE') or 'COMPLETION_CODE')
     ap.add_argument('--screenout-code', default=config_value('SCREENOUT_CODE') or 'SCREENOUT_CODE')

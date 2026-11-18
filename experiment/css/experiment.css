@@ -105,18 +105,14 @@ html.srl-active, html.srl-active body { overflow: hidden !important; }
 .dz-like-btn.sel { border-color: #2F5DA8; background: #EEF3FB; }
 
 /* Sliding puzzle */
-.pz-wrap { display: flex; gap: 40px; align-items: center; justify-content: center; }
-.pz-board { display: grid; grid-template-columns: repeat(3, 104px); grid-template-rows: repeat(3, 104px); gap: 6px; background: #E7E1D6; padding: 6px; border-radius: 12px; }
-.pz-t { font: inherit; font-size: 38px; font-weight: 700; border: 0; border-radius: 10px; background: #F2A65A; color: #3B2410; cursor: pointer; }
-.pz-t:hover { background: #EE9640; }
-.pz-t.e { background: transparent; cursor: default; }
-.pz-goal { text-align: center; }
-.pz-mini { display: grid; grid-template-columns: repeat(3, 28px); gap: 3px; }
-.pz-m { width: 28px; height: 28px; background: #F7D2AB; border-radius: 4px; font-size: 14px; font-weight: 700; display: flex; align-items: center; justify-content: center; }
-.pz-m.e { background: transparent; }
-.pz-msg { text-align: center; margin-top: 12px; }
 
 /* Arithmetic */
+.gr-wrap { text-align: center; margin-top: 90px; }
+.gr-count { font-size: 96px; font-weight: 700; color: #2F5DA8; margin: 30px 0 18px; font-variant-numeric: tabular-nums; }
+.gr-bar { width: 420px; max-width: 100%; margin: 0 auto; }
+.ar-deadline { height: 14px; width: 360px; max-width: 100%; margin: 0 auto; background: #E7E1D6; border-radius: 7px; overflow: hidden; }
+.ar-deadline > div { height: 100%; width: 100%; background: #E08A2E; }
+.ar-msg { text-align: center; color: #A3302A; font-weight: 600; min-height: 1.4em; margin: 8px 0 0; }
 .ar-eq { font-size: 64px; font-weight: 700; text-align: center; margin: 70px 0 10px; min-height: 80px; letter-spacing: 1px; font-variant-numeric: tabular-nums; }
 
 /* Scenes */

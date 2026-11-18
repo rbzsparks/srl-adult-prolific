@@ -1,6 +1,6 @@
 /* main.js: builds the jsPsych timeline and runs the experiment.
- * Order: intro → name → relationship → IOS → contact → duration → avatar designer → audio check → filler 1 →
- *        familiarization (12 scenes) → filler 2 → tests (3 blocks) → end.
+ * Order: intro → name → relationship → IOS → contact → duration → avatar designer → audio check → filler 1 ("get ready" countdown) →
+ *        familiarization (12 scenes) → filler 2 (arithmetic) → tests (3 blocks) → end.
  * start(opts): opts = { base, mode: 'qualtrics'|'local', params: {...}, finish: function } */
 SRL.main = (function () {
   const U = SRL.util, UI = SRL.ui;
@@ -168,6 +168,7 @@ SRL.main = (function () {
       }
     });
     const keep = (d, keys) => { keys.forEach((k) => { if (d[k] !== undefined) S.p[k] = d[k]; }); return d; };
+    const F2_KEYS = ['filler2_accuracy', 'filler2_n_attempted', 'filler2_n_timeout', 'filler2_low_engagement'];
     const Sc = SRL.screens;
 
     const timeline = [
@@ -197,25 +198,26 @@ SRL.main = (function () {
       }),
       step('likeness', 'designer', async (el) => keep(await SRL.designer.likeness(el, S, S.knownSpec), ['likeness_rating', 'likeness_rt_ms'])),
       step('audio_check', 'audio_check', async (el) => keep(await Sc.audioCheck(el, S), ['audio_check_pass', 'audio_check_attempts'])),
-      step('filler1', 'filler1', async (el) => keep(await SRL.fillers.puzzle(el, S, S.timing.FILLER1), ['filler1_solved', 'filler1_moves', 'filler1_time_to_solve_ms', 'filler1_n_solved'])),
+      step('filler1', 'filler1', (el) => SRL.fillers.getReady(el, S, S.timing.FILLER1)),
       step('fam_instructions', 'fam', async (el) => { SRL.progress.stage('fam'); return Sc.famInstructions(el, S); })
     ];
     S.design.fam.forEach((sc, i) => timeline.push(step('fam_scene', 'fam', async (el) => {
       const ctx = { knownSpec: S.knownSpec, unfamiliarSpec: S.unfamiliarSpec, knownName: S.knownName, unfamiliarName: S.unfamiliarName,
         timing: S.timing, debug: S.debug, auto: S.auto, list: S.list, showName: S.showName };
       const r = await SRL.scene.run(el, sc, ctx);
-      r.fam_position = i + 1;
+      r.serial_position = i + 1;
       S.fam.push(r);
       return r;
     })));
     timeline.push(step('filler2', 'filler2', async (el) => {
       SRL.progress.stage('post_fam');
-      const d = await SRL.fillers.arithmetic(el, S, S.timing.FILLER2);
+      const d = await SRL.fillers.arithmetic(el, S, S.timing.FILLER2, S.timing.FILLER2_DEADLINE);
       S.filler2Trials = d.filler2_trials;
-      keep(d, ['filler2_accuracy', 'filler2_n']);
+      keep(d, F2_KEYS);
       // Incremental backup after familiarization + filler 2.
       SRL.data.dataPipe(S, 'after_fam', SRL.data.fullJson(S)).then((r) => (S.saveStatus.datapipe_after_fam = r));
-      return { filler2_accuracy: d.filler2_accuracy, filler2_n: d.filler2_n };
+      const out = {}; F2_KEYS.forEach((k) => (out[k] = d[k]));
+      return out;
     }));
     timeline.push(step('test_intro', 'test', async (el) => {
       SRL.progress.stage('test');
