@@ -182,8 +182,9 @@ SRL.screens = (function () {
   }
 
   const famInstructions = (el, S) => message(el, S, 'Watching scenes',
-    `<p class="srl-lead">Next, you'll watch ${S.design.sets.length} short scenes of people meeting each other.</p>
+    `<p class="srl-lead">Next, you'll watch ${S.design.fam.length} short scenes of people meeting each other.</p>
      <p>In each scene, someone you haven't seen before comes over to talk. In some scenes they meet <b>${nm(S)}</b>; in others they meet someone else.</p>
+     ${S.design && S.design.design_version === 'repeat6' ? '<p>Scenes may be shown more than once.</p>' : ''}
      <p>Please watch each scene carefully. When a scene is finished, press <b>SPACE</b> when you're ready to continue.</p>
      ${C().SURPRISE_TEST ? '' : '<p><b>Afterwards, we will test your memory for what you saw.</b></p>'}
      <p class="srl-note">Make sure your sound is on.</p>`, 'Start the scenes');

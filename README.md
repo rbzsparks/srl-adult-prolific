@@ -5,6 +5,10 @@ Participants name someone they know (closeness category assigned between subject
 frequency and relationship duration, build an avatar of that person, read the scene instructions, get a 15-second "get ready" countdown, watch 12 animated
 scenes with audio, do a 45-second arithmetic filler, and then take surprise memory tests for words, faces and incidental objects.
 
+**Two versions share this codebase** (each runs as its own Qualtrics survey and Prolific study):
+- **unique12**: 12 scene sets, each shown once; 36 test trials. Survey: `qualtrics/survey.qsf`. Most of this README describes it.
+- **repeat6**: 6 scene sets, each shown twice; 18 test trials; a between-subjects stranger set (X / Y). Survey: `qualtrics/repeat6/survey.qsf`. Everything that differs is in [§18](#18-repeat6-version-6-scene-sets-each-shown-twice).
+
 Order of precedence for the design documents: `ANSWERS_ROUND2.md` > `UPDATES_v2.md` > `ANSWERS_FOR_CLAUDE_CODE.md` > `EXPERIMENT_SPEC.md`.
 
 ---
@@ -28,6 +32,7 @@ Order of precedence for the design documents: `ANSWERS_ROUND2.md` > `UPDATES_v2.
 15. [Privacy](#15-privacy)
 16. [What the researcher still needs to supply](#16-what-the-researcher-still-needs-to-supply)
 17. [Known limitations and untested paths](#17-known-limitations-and-untested-paths)
+18. [Repeat6 version (6 scene sets, each shown twice)](#18-repeat6-version-6-scene-sets-each-shown-twice)
 
 ---
 
@@ -49,12 +54,13 @@ experiment/                  ← publish this folder on GitHub Pages
   js/scene.js                animated familiarization scene, AOIs, MouseView option
   js/fillers.js              "get ready" countdown; arithmetic verification
   js/tests.js                word / face / incidental tests
-  js/stimuli.js              loads stimuli.json; lists, orders, foils
+  js/stimuli.js              loads the stimulus file of the design version; lists, orders, foils (unique12 + repeat6)
   js/audio.js                Web Audio preload, playback, amplitude lip-sync, pause segmentation
   js/data.js                 Qualtrics (legacy / NSTE), JSON chunks, DataPipe, local download
   js/progress.js             reload marker (localStorage), leave-page warning
   js/fields.js               THE list of embedded-data fields (shared with the Python tools)
   stimuli/stimuli.json       scene sets: stranger + foil feature vectors, foil change, object, word (+IPA), incidental type, voice
+  stimuli/stimuli_repeat6.json  repeat6: 6 scene sets + stranger sets X / Y (strangers, foils, voices, audio clip ids)
   stimuli/svg/               exported SVGs of every stimulus (see §9)
   audio/                     <clip_id>.mp3 + .ogg, audio_manifest.csv (recording script)
 qualtrics/
@@ -62,6 +68,7 @@ qualtrics/
   experiment_question.js     the JS in the experiment question (for pasting manually if needed)
   device_check_question.js   the JS in the device-check question
   embedded_data_fields.txt   every embedded-data field declared in the survey flow
+  repeat6/                   the same four files for the repeat6 survey (python tools/build_qsf.py --design repeat6)
 analysis/
   reshape_qualtrics.py       Qualtrics export (wide) → long format, one row per trial
 tools/
@@ -70,6 +77,9 @@ tools/
   scene_preview.html         play any scene in either condition; show the final frame + AOIs
   designer_preview.html      run the avatar designer + likeness question on their own; shows the unfamiliar person
   make_foils.html            (re)generate the frozen face-test foils from FOIL_K / FOIL_STEP; checks the 6 foil rules
+                             (?design=repeat6: the repeat6 foils and their rules)
+  build_repeat6_stimuli.py   builds stimuli_repeat6.json from stimuli.json (scene sets, stranger sets, foil changes)
+  check_repeat6.html         1,000 repeat6 designs from the real stimuli.js: every order / test rule + balance tables
   build_qsf.py               regenerates qualtrics/survey.qsf from config.js + fields.js
   make_placeholder_audio.py  placeholder TTS (Windows voices) → normalize
   normalize_audio.py         trim / −16 LUFS / limiter / 44.1 kHz mono / MP3 + OGG (rerun on final recordings)
@@ -91,6 +101,8 @@ Then open `http://localhost:8000/experiment/index.html?debug=1`. URL parameters:
 | `PROLIFIC_PID`, `STUDY_ID`, `SESSION_ID` | as Prolific sends them |
 | `category` | `acquaintance` \| `moderate` \| `close` (random if missing) |
 | `list` | `A` \| `B` (random if missing) |
+| `design_version` | `unique12` \| `repeat6` (missing: `DESIGN_VERSION` in config.js, recorded as `design_version_source = config_fallback`) |
+| `stranger_set` | repeat6 only: `X` \| `Y` (random if missing) |
 | `debug=1` | fillers shortened (countdown 5 s, arithmetic 15 s); condition / stimulus IDs shown on screen; no DataPipe; data downloaded |
 | `name_label` | `0` hides / `1` shows the name text beneath the person in scenes (overrides `SHOW_NAME_LABEL`) |
 | `auto=1` | with `debug=1`: autopilot clicks through the whole study (~3–4 min) |
@@ -120,7 +132,7 @@ Example full walkthrough: `…/index.html?debug=1&auto=1&devsave=1&PROLIFIC_PID=
    curl -sI https://rbzsparks.github.io/srl-adult-prolific/experiment/audio/greet_s01.mp3 | grep -i access-control
    ```
    It should print `access-control-allow-origin: *`. Then do a Qualtrics preview with `debug=1` (see §4). The
-   loading bar fills only if all 51 clips were fetched and decoded with the Web Audio API.
+   loading bar fills only if all clips of the design version were fetched and decoded with the Web Audio API.
    `audio_load_errors` in the data counts any that failed.
    Without Qualtrics, `tools/remote_load_test.html` (served by `tools/dev_server.py`) loads the live study from
    GitHub Pages into a page on another origin, the same way the Qualtrics question does. Add `?auto=1` for an
@@ -146,7 +158,7 @@ Example full walkthrough: `…/index.html?debug=1&auto=1&devsave=1&PROLIFIC_PID=
 
 Survey flow in the .qsf:
 
-1. **Embedded Data**: `PROLIFIC_PID`, `STUDY_ID`, `SESSION_ID`, `debug`, `name_label` (from the URL), plus every field the experiment writes (390 fields in total; listed in `qualtrics/embedded_data_fields.txt`).
+1. **Embedded Data**: `PROLIFIC_PID`, `STUDY_ID`, `SESSION_ID`, `debug`, `name_label` (from the URL), plus every field the experiment writes (392 fields in total; listed in `qualtrics/embedded_data_fields.txt`).
 2. **Device check** (JS, before consent): mobile/tablet (by user agent), or a screen smaller than 1024 × 650 physical pixels (either orientation; measured as CSS pixels × `devicePixelRatio`, so Windows display scaling or browser zoom doesn't fail an ordinary laptop) → message showing the detected reason and screen size → **End of Survey → redirect to `…/complete?cc=SCREENOUT_CODE`**. Qualtrics' preview has a **Mobile view** toggle; with it on, a phone-sized frame is shown, so preview with it off.
 3. **Consent** (placeholder text, shows the ~19 min estimate). "I do not agree" → "Please return this study on Prolific" (no Next button, no code).
 4. **Randomizer**: present 1 of 6, **evenly present** on. Each element sets `category` (acquaintance / moderate / close) × `list` (A / B).
@@ -210,6 +222,8 @@ All in `experiment/config.js`.
 | `QUALTRICS_ENGINE` | `'legacy'` | `'nste'` = untested path, §4.5 |
 | `COMPLETION_CODE`, `SCREENOUT_CODE` | placeholders | also set in the .qsf redirects (rebuild with `--completion-code` / `--screenout-code`) |
 | `DATAPIPE.EXPERIMENT_ID` | placeholder | backup is skipped while it's a placeholder or in debug mode |
+| `DESIGN_VERSION` | `'unique12'` | fallback only: each survey passes `design_version` to the experiment (§18). Recorded as `design_version`, with `design_version_source` = `qsf` (passed by the survey), `url` (local runs) or `config_fallback` |
+| `ESTIMATED_MINUTES_REPEAT6` | `17` | consent-page estimate in the repeat6 survey |
 | `SURPRISE_TEST` | `true` | `false` adds "Afterwards, we will test your memory…" to the scene instructions; recorded as `surprise_test` |
 | `SHOW_NAME_LABEL` | `true` | `true` (the default again since v2.0.0) shows the name text beneath the known / unfamiliar person in every scene; `false` hides it (the name is still used in the setup questions and scene instructions). Override per participant with `name_label=0/1`, from the URL or a Qualtrics embedded field (§8). Recorded as `name_label_shown` |
 | `MOUSEVIEW` | `false` | blur-except-cursor spotlight + AOI dwell (`dwell_*_ms` in the JSON backup). Lightly tested only |
@@ -391,7 +405,7 @@ The audio is generated with **ElevenLabs** (Starter plan; model `eleven_v4`). Th
 
 ### 10.2 General
 
-- **Recording script:** `experiment/audio/audio_manifest.csv`, 51 clips. Columns: `clip_id, speaker_id, speaker_gender, speaker_age, text, pronunciation, file, duration_ms, is_placeholder, ipa, stress, notes`. It contains:
+- **Recording script:** `experiment/audio/audio_manifest.csv`, 58 clips (51 for unique12 + 7 label clips used only by repeat6, §18). Columns: `clip_id, speaker_id, speaker_gender, speaker_age, text, pronunciation, file, duration_ms, is_placeholder, ipa, stress, notes`. It contains:
   - per stranger (12 voices): `greet_sXX` ("Hi! Good to see you!") and `label_sXX` ("Look! It's a X! A X!")
   - narrator: `test_word_<word>`, `test_face`, `test_incid_<type>`, and `check_window` / `check_garden`
 - **Swapping in human recordings** (optional):
@@ -422,6 +436,7 @@ Export from Qualtrics: **CSV, "Use numeric values"**. Then:
 python analysis/reshape_qualtrics.py export.csv -o long.csv
 ```
 
+- **Both versions:** each row is read with the field lists of its `design_version` (blank = unique12). repeat6 adds `presentation`, `lag` and `serial_position_2` (§18). Run the script once per survey export.
 - **Output:** one row per trial. Participant columns are repeated on every row; then `phase` (familiarization / test), the trial fields, and the model coding:
   - `k` = closeness: IOS − 1 for known scenes, 0 for unfamiliar
   - `f` = `target` (word, face) or `incidental`
@@ -488,6 +503,9 @@ python analysis/reshape_qualtrics.py export.csv -o long.csv
 | `reload_stage` | stage at that reload (fam / post_fam / test / done) |
 | `t_intro_ms` … `t_test_ms` | time per section (§7 table) |
 | `js_start_epoch_ms`, `js_end_epoch_ms` | Unix ms at the start and end of the JS block |
+| `design_version` | `unique12` / `repeat6` |
+| `design_version_source` | `qsf` (the survey passed it), `url` (local run) or `config_fallback` (nothing passed: check that survey) |
+| `stranger_set` | repeat6 only: X / Y |
 | `exp_version`, `qualtrics_engine`, `surprise_test`, `mouseview_on`, `debug`, `seed` | run settings (`seed` reproduces every randomization) |
 | `name_label_shown` | 1 = name text shown beneath the person in scenes, 0 = hidden |
 | `browser`, `screen_w`, `screen_h`, `window_w`, `window_h`, `window_small_prompt` | display info |
@@ -591,3 +609,99 @@ These are recorded, not enforced: the preregistered rules decide.
 - **Gaze direction:** eyes and head are aimed at the actual target, and the object sits below eye level so object looks and partner looks differ. It reads clearly in still frames and the style-sheet preview, but it's worth a look in the pilot.
 - **Designer duration:** the v2 designer is longer than v1; the 20-minute estimate is a guess until the pilot (`t_designer_ms`, `t_designer_<tab>_ms`).
 - **v2 has not been loaded from GitHub Pages yet** (it was built on the `avatar-v2` branch and tested locally); run `tools/remote_load_test.html` after merging and deploying.
+
+## 18. Repeat6 version (6 scene sets, each shown twice)
+
+A second study built from the same code. Everything not listed here is identical to unique12: avatar designer, unfamiliar
+person, audio and animation, fillers (15 s countdown, 45 s arithmetic), post-test, device check, Qualtrics / Prolific
+setup. Spec: `REPEAT6_VERSION.md` (with the decisions made on 2026-11-17).
+
+### 18.1 Version switch
+
+- Each .qsf sets the embedded field `design_version` (`unique12` or `repeat6`) in its first flow element and passes it to
+  the experiment. `DESIGN_VERSION` in config.js is only the fallback (both studies load the same files from GitHub Pages).
+- Recorded: `design_version`, and `design_version_source` = `qsf` / `url` / `config_fallback`. A survey that doesn't pass
+  the version shows up as `config_fallback`.
+- Build / rebuild the survey: `python tools/build_qsf.py --design repeat6` → `qualtrics/repeat6/` (survey.qsf, the two
+  question JS files, embedded_data_fields.txt: 327 fields). Import it as its own survey; setup is the same as §4, except the
+  randomizer has **12** elements and the preview test field is `test_word_ss1_correct`.
+
+### 18.2 Scene sets (`stimuli/stimuli_repeat6.json`)
+
+| Scene set | Word | Object drawing | Incidental | List A | List B |
+|---|---|---|---|---|---|
+| ss1 | bosa | bosa | mug | known | unfamiliar |
+| ss2 | daxa | daxa | vase | unfamiliar | known |
+| ss3 | lufi | **cube** (unique12's "zibu" drawing) | lamp | known | unfamiliar |
+| ss4 | tefo | tefo | clock | unfamiliar | known |
+| ss5 | mavo | **teal blob with antennae** (unique12's "fiku" drawing) | book | known | unfamiliar |
+| ss6 | gimu | gimu | candle | unfamiliar | known |
+
+- lufi and mavo use the two drawings most different from the four kept objects and from each other (chosen in
+  `design/repeat6_objects.html`). In the data, `object_id` names the drawing shown (`obj_zibu`, `obj_fiku`); `word` names the label.
+- Incidental colour: random per participant (as in unique12), one colour per scene set, so both showings match.
+
+### 18.3 Stranger sets (between subjects) and foils
+
+Matched pairs (same gender presentation and age); the first-listed member is in the odd scene set (known in list A):
+
+| Pair → scene sets | Set X | Set Y |
+|---|---|---|
+| 1 → ss1 / ss2 | str01 / str07 (young women) | str02 / str08 (young men) |
+| 2 → ss3 / ss4 | str04 / str10 (middle-aged men) | str03 / str09 (middle-aged women) |
+| 3 → ss5 / ss6 | str05 / str11 (older women) | str06 / str12 (older men) |
+
+- Known and unfamiliar strangers therefore always have identical demographics, and all 12 strangers are used across participants.
+- Foils are the frozen unique12 foils, except two repeat6-only changes (colour → style), so each young and middle-aged pair has
+  one style and one colour foil: **str02** braids → locs (`foil02b`), **str09** shoulder → long (`foil09b`).
+- The first-listed member's foil type alternates across those pairs (X: colour, style; Y: style, colour), so each condition
+  gets a mix within a participant (X odd: colour, style, style; even: style, colour, style).
+- Older pairs keep two style foils: all four have mostly grey hair, which would hide a colour change. Across the two lists,
+  each stranger appears in both conditions, so style and colour foils stay balanced across conditions.
+- `tools/make_foils.html?design=repeat6` regenerates these foils and checks the rules (it refuses to save if one fails).
+- Audio: each stranger keeps their voice and greeting. Strangers who say a different word than in unique12 have their own
+  label clip (`label_<stranger>_<word>`: str10 tefo; str02 bosa, str08 daxa, str03 lufi, str09 tefo, str06 mavo, str12 gimu).
+  These 7 were generated on 2026-11-17 with the same model (eleven_v4), voices and IPA as the other clips, take 1, normalized
+  with `normalize_audio.py`, and are in the manifest (**listen before launch**). To regenerate one:
+  `python tools/elevenlabs_tts.py generate --takes 3 --only label_str10_tefo`, choose a take in `tools/audio_review.html`,
+  then `python tools/elevenlabs_tts.py finalize --only label_str10_tefo` (`--only` leaves every other file untouched).
+
+### 18.4 Familiarization order (12 trials)
+
+- Block 1: the 6 scene sets in random order; block 2: all 6 again in a new random order.
+- Resampled until all hold: (1) block 2 does not start with block 1's last scene set; (2) no more than 2 consecutive scenes of
+  the same condition, **across the block boundary too**; (3) the last 2 trials are one known and one unfamiliar scene.
+- A second showing is identical to the first: stranger, audio clips, object, word, incidental object and colour, animation, timing.
+  The same unfamiliar avatar and name are used in all unfamiliar trials.
+- Scene instructions add one sentence (unique12 wording otherwise unchanged): "Scenes may be shown more than once."
+
+### 18.5 Tests (18 trials; word → face → incidental)
+
+- **Word** (6 trials, 4 choices): 3 foils from the other 5 objects; each object is a foil exactly 3 times; every trial has foils
+  from both conditions. daxa and mavo may appear together (the never-together rule can't coexist with exact balance: both
+  could only be foils on the same 4 trials). Target positions: each of the 4 positions once or twice per participant.
+- **Face** (6 trials): stranger vs. their foil; target on the left in exactly 3 trials.
+- **Incidental** (6 trials): "What color was the [object]?", 4 colours.
+
+### 18.6 Data
+
+- Participant: adds `stranger_set` (and the `design_version` fields both versions have).
+- Familiarization `fam_01`–`fam_12`: adds `presentation` (1 / 2) and `lag` (trials since that scene set's first showing; blank
+  for presentation 1) next to `serial_position`. `view_ms` etc. are per showing.
+- Tests: `test_<type>_<ss1…ss6>_*` (6 per type). The full-data JSON also gives each test trial `serial_position` (first
+  showing) and `serial_position_2` (second showing).
+- Long format (`reshape_qualtrics.py`): 12 familiarization rows (with `presentation`, `lag`) + 18 test rows (with
+  `serial_position`, `serial_position_2`, `lag`). Sample: `sample_data/sample_long_format_repeat6.csv`.
+
+### 18.7 Check script
+
+`tools/check_repeat6.html` (through the dev server; `?n=5000` for more, `&prototype=1` to load Prototype.js first) builds
+1,000 participants' designs with the experiment's own `stimuli.js`, both lists × both stranger sets, and checks every rule
+above, then shows balance tables. Result on 2026-11-17 (with Prototype.js): all 26 checks passed; word-test target
+positions 24.7–25.4% each; foil positions 24.9–25.1%; every scene set a foil 3,000 times; face targets 50.0% left;
+last two trials known→unfamiliar 491, unfamiliar→known 509; lags 2–11.
+
+### 18.8 Duration
+
+Familiarization is still 12 scenes; the tests drop from 36 to 18 trials (about 1.5–2 min less), so the consent page says
+about **17 minutes** (`ESTIMATED_MINUTES_REPEAT6`). Confirm with the pilot.

@@ -3,6 +3,7 @@ STUDY_ID
 SESSION_ID
 debug
 name_label
+design_version
 category
 list
 device_ok
@@ -10,6 +11,7 @@ device_reason
 device_screen
 device_window
 device_pointer
+design_version_source
 relationship_type
 is_kin
 ios

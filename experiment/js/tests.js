@@ -2,8 +2,9 @@
  * Prompts are spoken by the narrator and shown as text. RT is measured from option onset to click. */
 SRL.tests = (function () {
   const U = SRL.util, UI = SRL.ui, P = SRL.people, O = SRL.objects;
-  // Familiarization position (1-12) of a scene set. A plain loop: Qualtrics' Prototype.js replaces Array.prototype.find.
-  const famPos = (S, id) => { for (let i = 0; i < S.design.fam.length; i++) if (S.design.fam[i].id === id) return i + 1; return null; };
+  // Familiarization positions (1-12) of a scene set: [first showing, second showing (repeat6 only)].
+  // A plain loop: Qualtrics' Prototype.js replaces Array.prototype.find.
+  const famPos = (S, id) => { const out = []; for (let i = 0; i < S.design.fam.length; i++) if (S.design.fam[i].id === id) out.push(i + 1); return out; };
   const esc = U.escapeHtml;
 
   const BLOCK_INTRO = {
@@ -73,7 +74,8 @@ SRL.tests = (function () {
     const foilOpts = t.options.filter((o) => !isTarget(o));
     const idOf = (o) => (t.type === 'face' ? (o.target ? s.stranger.id : s.foil.id) : o.id);
     return {
-      test_type: t.type, scene_set_id: s.id, condition: s.condition, serial_position: famPos(S, s.id),
+      test_type: t.type, scene_set_id: s.id, condition: s.condition, serial_position: famPos(S, s.id)[0] || null,
+      serial_position_2: famPos(S, s.id)[1] || null,
       target_id: t.type === 'word' ? s.object_id : t.type === 'face' ? s.stranger.id : s.incidental_color,
       foil_ids: foilOpts.map(idOf).join('|'),
       foil_conditions: t.type === 'word' ? foilOpts.map((o) => o.condition).join('|') : '',

@@ -57,11 +57,20 @@ SRL.main = (function () {
     const cats = Object.keys(C.CATEGORIES);
     S.category = cats.indexOf(params.category) >= 0 ? params.category : null;
     S.list = ['A', 'B'].indexOf(params.list) >= 0 ? params.list : null;
-    S.p.assign_fallback = (!S.category || !S.list) ? 1 : 0;
+    // Design version: passed by the survey (or URL); the config value is only a fallback.
+    const DV = ['unique12', 'repeat6'];
+    const dvParam = DV.indexOf(params.design_version) >= 0 ? params.design_version : null;
+    S.designVersion = dvParam || (DV.indexOf(C.DESIGN_VERSION) >= 0 ? C.DESIGN_VERSION : 'unique12');
+    S.p.design_version = S.designVersion;
+    S.p.design_version_source = dvParam ? (opts.mode === 'qualtrics' ? 'qsf' : 'url') : 'config_fallback';
+    S.strangerSet = S.designVersion === 'repeat6' && ['X', 'Y'].indexOf(params.stranger_set) >= 0 ? params.stranger_set : null;
+    S.p.assign_fallback = (!S.category || !S.list || (S.designVersion === 'repeat6' && !S.strangerSet)) ? 1 : 0;
     const seed = (crypto.getRandomValues(new Uint32Array(1))[0] >>> 0) || 1;
     U.seed(seed);
     if (!S.category) S.category = U.pick(cats);
     if (!S.list) S.list = U.pick(['A', 'B']);
+    if (S.designVersion === 'repeat6' && !S.strangerSet) S.strangerSet = U.pick(['X', 'Y']);
+    if (S.strangerSet) S.p.stranger_set = S.strangerSet;
     Object.assign(S.p, {
       category: S.category, list: S.list, seed, exp_version: C.VERSION, qualtrics_engine: C.QUALTRICS_ENGINE,
       surprise_test: C.SURPRISE_TEST ? 1 : 0, mouseview_on: C.MOUSEVIEW ? 1 : 0, debug: debug ? 1 : 0,
@@ -88,7 +97,7 @@ SRL.main = (function () {
     UI.page(canvas, '<h1>Loading…</h1><p class="srl-lead" id="ld">Preparing the study. This takes a few seconds.</p><div class="srl-timer"><div style="width:0%"></div></div>');
     const ld = canvas.querySelector('.srl-timer > div');
     try {
-      await SRL.stimuli.load(opts.base);
+      await SRL.stimuli.load(opts.base, S.designVersion, S.strangerSet);
       const errs = await SRL.audio.preload(opts.base, SRL.stimuli.clipIds(), (d, n) => (ld.style.width = (100 * d / n) + '%'));
       S.p.audio_load_errors = errs.length;
       if (errs.length) S.p.audio_load_error_list = errs.slice(0, 10).join('; ');
@@ -109,7 +118,7 @@ SRL.main = (function () {
       S.p.fam_timeout_count = S.fam.filter((r) => r.timed_out).length;
       S.p.audio_simulated_scenes = S.fam.filter((r) => r.audio_simulated).length;
       try {
-        if (jsPsych) jsPsych.data.addProperties(Object.fromEntries(window.SRL_FIELDS.participant.map((k) => [k, S.p[k] === undefined ? null : S.p[k]])));
+        if (jsPsych) jsPsych.data.addProperties(Object.fromEntries(SRL.data.fields().participant.map((k) => [k, S.p[k] === undefined ? null : S.p[k]])));
         await SRL.data.finalSave(S, jsPsych || { data: { get: () => ({ csv: () => '' }) } });
       } catch (e) {
         console.error(e);
@@ -150,7 +159,7 @@ SRL.main = (function () {
     S.p.fam_order = S.design.fam.map((s) => s.id).join('|');
     S.p.incidental_colors = S.design.sets.map((s) => s.id + ':' + s.incidental_color).join('|');
     S.p.aoi_norm = SRL.scene.AOI_NORM;
-    if (debug) UI.debug(`DEBUG | category ${S.category} | list ${S.list} | seed ${seed}`);
+    if (debug) UI.debug(`DEBUG | ${S.designVersion}${S.strangerSet ? ' set ' + S.strangerSet : ''} | category ${S.category} | list ${S.list} | seed ${seed}`);
 
     S.running = true;
     SRL.progress.guard(true);
@@ -206,6 +215,7 @@ SRL.main = (function () {
         timing: S.timing, debug: S.debug, auto: S.auto, list: S.list, showName: S.showName };
       const r = await SRL.scene.run(el, sc, ctx);
       r.serial_position = i + 1;
+      if (sc.presentation) { r.presentation = sc.presentation; r.lag = sc.lag; }
       S.fam.push(r);
       return r;
     })));

@@ -3,7 +3,7 @@
 Mimics the real export layout (3 header rows: names, question text, ImportId JSON) so the reshape script can be
 tested before any real data exist. Post-test answers are filled with plausible placeholder values.
 
-Usage: python tools/make_mock_export.py sample_data/*_qualtrics_fields.json -o sample_data/mock_qualtrics_export.csv [--engine nste]
+Usage: python tools/make_mock_export.py sample_data/*_qualtrics_fields.json -o sample_data/mock_qualtrics_export.csv [--engine nste] [--design repeat6]
 """
 import argparse
 import csv
@@ -24,10 +24,12 @@ def main():
     ap.add_argument('files', nargs='+')
     ap.add_argument('-o', '--out', required=True)
     ap.add_argument('--engine', choices=['legacy', 'nste'], default='legacy')
+    ap.add_argument('--design', choices=['unique12', 'repeat6'], default='unique12',
+                    help='which survey the export comes from (each version is its own Qualtrics survey)')
     a = ap.parse_args()
     pre = '__js_' if a.engine == 'nste' else ''
     ed = ['PROLIFIC_PID', 'STUDY_ID', 'SESSION_ID', 'debug', 'category', 'list', 'device_ok', 'device_reason', 'device_screen', 'device_window']
-    exp = all_field_names(load_fields())
+    exp = all_field_names(load_fields(a.design))
     cols = NATIVE + ed + [pre + c for c in exp if c not in ed]
     rows = []
     for i, fpath in enumerate(sorted(a.files)):

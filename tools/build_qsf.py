@@ -4,13 +4,14 @@ Survey flow:
   1. Embedded Data: PROLIFIC_PID, STUDY_ID, SESSION_ID, debug (from URL) + every field the experiment writes
   2. Device check block (JS) -> Branch: device_ok = 0 -> message + End of Survey (redirect SCREENOUT_CODE)
   3. Consent block -> Branch: declined -> "Please return this study" (no Next button) + End of Survey
-  4. Randomizer (evenly present, 1 of 6): category x list
+  4. Randomizer (evenly present): category x list (6 branches); repeat6: category x list x stranger_set (12 branches)
   5. Experiment block (one question whose JS loads the experiment from BASE_URL; Next button hidden)
   6. Post-test questions, demographics, debrief
   7. End of Survey: redirect to Prolific completion URL
 
 Usage:
   python tools/build_qsf.py --base-url https://rbzsparks.github.io/<repo>/experiment/ [--engine legacy|nste]
+  python tools/build_qsf.py --design repeat6        (writes qualtrics/repeat6/; a separate Prolific study)
                             [--completion-code CODE] [--screenout-code CODE]
 """
 import argparse
@@ -24,10 +25,23 @@ ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 EXP = os.path.join(ROOT, 'experiment')
 
 
-def load_fields():
+def load_fields(design='unique12'):
     txt = open(os.path.join(EXP, 'js', 'fields.js'), encoding='utf-8').read()
     start = txt.index('{', txt.index('window.SRL_FIELDS'))
-    return json.loads(txt[start: txt.rindex('}') + 1])
+    return fields_for(json.loads(txt[start: txt.rindex('}') + 1]), design)
+
+
+def fields_for(f, design):
+    """Same as SRL.data.fieldsFor: the unique12 lists with the design's overrides from fields.js "designs"."""
+    o = (f.get('designs') or {}).get(design)
+    if not o:
+        return f
+    f = dict(f)
+    f['participant'] = f['participant'] + o.get('participant_extra', [])
+    for k in ('fam_per_scene', 'scene_set_ids'):
+        if k in o:
+            f[k] = o[k]
+    return f
 
 
 def all_field_names(f):
@@ -60,7 +74,7 @@ EXPERIMENT_JS = r"""Qualtrics.SurveyEngine.addOnload(function () {
   var VERSION = '__VERSION__';
   var params = {
     PROLIFIC_PID: "${e://Field/PROLIFIC_PID}", STUDY_ID: "${e://Field/STUDY_ID}", SESSION_ID: "${e://Field/SESSION_ID}",
-    category: "${e://Field/category}", list: "${e://Field/list}", debug: "${e://Field/debug}", name_label: "${e://Field/name_label}", ResponseID: "${e://Field/ResponseID}"
+    category: "${e://Field/category}", list: "${e://Field/list}", design_version: "${e://Field/design_version}", stranger_set: "${e://Field/stranger_set}", debug: "${e://Field/debug}", name_label: "${e://Field/name_label}", ResponseID: "${e://Field/ResponseID}"
   };
   function fail(e) {
     var c = q.getQuestionContainer ? q.getQuestionContainer() : document.body;
@@ -115,12 +129,15 @@ def main():
     ap.add_argument('--engine', choices=['legacy', 'nste'], default='legacy')
     ap.add_argument('--completion-code', default=config_value('COMPLETION_CODE') or 'COMPLETION_CODE')
     ap.add_argument('--screenout-code', default=config_value('SCREENOUT_CODE') or 'SCREENOUT_CODE')
-    ap.add_argument('--out', default=os.path.join(ROOT, 'qualtrics', 'survey.qsf'))
+    ap.add_argument('--design', choices=['unique12', 'repeat6'], default='unique12')
+    ap.add_argument('--out', default='')
     a = ap.parse_args()
+    r6 = a.design == 'repeat6'
+    a.out = a.out or os.path.join(ROOT, 'qualtrics', *(['repeat6'] if r6 else []), 'survey.qsf')
     random.seed(20261113)
     base = a.base_url if a.base_url.endswith('/') else a.base_url + '/'
     version = config_value('VERSION') or '1.0.0'
-    est = config_value('ESTIMATED_MINUTES') or '18'
+    est = (config_value('ESTIMATED_MINUTES_REPEAT6') if r6 else config_value('ESTIMATED_MINUTES')) or '18'
     W, H = config_value('MIN_SCREEN_W') or '1024', config_value('MIN_SCREEN_H') or '650'
     pre = '__js_' if a.engine == 'nste' else ''
     setter = 'Qualtrics.SurveyEngine.setJSEmbeddedData' if a.engine == 'nste' else 'Qualtrics.SurveyEngine.setEmbeddedData'
@@ -231,11 +248,13 @@ def main():
         return e
 
     prolific = 'https://app.prolific.com/submissions/complete?cc='
-    f = load_fields()
+    f = load_fields(a.design)
     exp_fields = [pre + n for n in all_field_names(f)]
     device_fields = [pre + n for n in ['device_ok', 'device_reason', 'device_screen', 'device_window', 'device_pointer']]
-    declared = ['PROLIFIC_PID', 'STUDY_ID', 'SESSION_ID', 'debug', 'name_label', 'category', 'list'] + device_fields + exp_fields
-    # category/list are written by the Randomizer; the experiment also writes them back (as written fields).
+    declared = (['PROLIFIC_PID', 'STUDY_ID', 'SESSION_ID', 'debug', 'name_label', 'design_version', 'category', 'list']
+                + (['stranger_set'] if r6 else []) + device_fields + exp_fields)
+    # category/list (and stranger_set) are written by the Randomizer; the experiment also writes them back (as written fields).
+    # design_version is set in the first flow element, so the experiment knows which version to run.
     declared = list(dict.fromkeys(declared))
 
     branch_dev = {'Type': 'Branch', 'FlowID': fid(), 'Description': 'New Branch',
@@ -254,10 +273,14 @@ def main():
     rand_children = []
     for cat in ['acquaintance', 'moderate', 'close']:
         for lst in ['A', 'B']:
-            rand_children.append(ed(['category', 'list'], {'category': cat, 'list': lst}))
+            if r6:
+                for ss in ['X', 'Y']:
+                    rand_children.append(ed(['category', 'list', 'stranger_set'], {'category': cat, 'list': lst, 'stranger_set': ss}))
+            else:
+                rand_children.append(ed(['category', 'list'], {'category': cat, 'list': lst}))
     randomizer = {'Type': 'BlockRandomizer', 'FlowID': fid(), 'SubSet': '1', 'EvenPresentation': True, 'Flow': rand_children}
 
-    flow = [ed(declared), blk(b_dev), branch_dev, blk(b_cons), branch_cons, randomizer, blk(b_exp), blk(b_post), blk(b_demo), blk(b_debrief),
+    flow = [ed(declared, {'design_version': a.design}), blk(b_dev), branch_dev, blk(b_cons), branch_cons, randomizer, blk(b_exp), blk(b_post), blk(b_demo), blk(b_debrief),
             end(prolific + a.completion_code)]
     flow_el = {'SurveyID': SID, 'Element': 'FL', 'PrimaryAttribute': 'Survey Flow', 'SecondaryAttribute': None, 'TertiaryAttribute': None,
                'Payload': {'Type': 'Root', 'FlowID': 'FL_1', 'Flow': flow, 'Properties': {'Count': fl[0], 'RemovedFieldsets': []}}}
@@ -274,7 +297,7 @@ def main():
     rs_el = {'SurveyID': SID, 'Element': 'RS', 'PrimaryAttribute': rid('RS_'), 'SecondaryAttribute': 'Default Response Set', 'TertiaryAttribute': None, 'Payload': None}
     qc_el = {'SurveyID': SID, 'Element': 'QC', 'PrimaryAttribute': 'Survey Question Count', 'SecondaryAttribute': str(len(questions)), 'TertiaryAttribute': None, 'Payload': None}
 
-    qsf = {'SurveyEntry': {'SurveyID': SID, 'SurveyName': 'Social relevance study (Prolific)', 'SurveyDescription': None, 'SurveyOwnerID': 'UR_placeholder',
+    qsf = {'SurveyEntry': {'SurveyID': SID, 'SurveyName': 'Social relevance study (Prolific)' + (' - repeat6' if r6 else ''), 'SurveyDescription': None, 'SurveyOwnerID': 'UR_placeholder',
                            'SurveyBrandID': 'placeholder', 'DivisionID': None, 'SurveyLanguage': 'EN', 'SurveyActiveResponseSet': rs_el['PrimaryAttribute'],
                            'SurveyStatus': 'Inactive', 'SurveyStartDate': '0000-00-00 00:00:00', 'SurveyExpirationDate': '0000-00-00 00:00:00',
                            'SurveyCreationDate': '2026-11-13 00:00:00', 'CreatorID': 'UR_placeholder', 'LastModified': '2026-11-13 00:00:00',
@@ -289,7 +312,8 @@ def main():
     open(os.path.join(jsdir, 'device_check_question.js'), 'w', encoding='utf-8').write(DEVICE_JS.replace('__W__', W).replace('__H__', H).replace('__SET__', setter))
     with open(os.path.join(jsdir, 'embedded_data_fields.txt'), 'w', encoding='utf-8') as fh:
         fh.write('\n'.join(declared) + '\n')
-    print(f'wrote {a.out}: {len(questions)} questions, {len(blocks)} blocks, {len(declared)} embedded-data fields, engine={a.engine}')
+    print(f'wrote {a.out}: design {a.design}, {len(questions)} questions, {len(blocks)} blocks, {len(rand_children)} randomizer branches, '
+          f'{len(declared)} embedded-data fields, engine={a.engine}')
 
 
 if __name__ == '__main__':

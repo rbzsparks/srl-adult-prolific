@@ -15,6 +15,7 @@
 </head>
 <body>
 <h1 style="font-size:20px">Face-test foils</h1>
+<p><b>Repeat-6 version:</b> open with <code>?design=repeat6</code> to regenerate and check the foils in <code>stimuli_repeat6.json</code>.</p>
 <p>Generates each foil from its stranger in <code>experiment/stimuli/stimuli.json</code>: <code>FOIL_K</code> identity sliders moved by
   <code>FOIL_STEP</code> (from <code>experiment/config.js</code>, seeded by <code>foil_seed</code>), plus the hand-picked hair change in
   <code>foil_change</code>. The six foil rules are checked; saving is refused if any fails. Open through
@@ -31,6 +32,7 @@
 <script>
 (async function () {
   const P = SRL.people, R = SRL.avatarRules, C = SRL_CONFIG;
+  if (/design=repeat6/.test(location.search)) return repeat6(P, R, C);
   const path = '../experiment/stimuli/stimuli.json';
   const stim = await (await fetch(path, { cache: 'no-store' })).json();
   document.getElementById('k').textContent = C.FOIL_K;
@@ -73,6 +75,58 @@
   document.getElementById('save').onclick = save;
   window.MAKE_FOILS = { ok, save, stim };
 })();
+
+async function repeat6(P, R, C) {
+  const path = '../experiment/stimuli/stimuli_repeat6.json';
+  const stim = await (await fetch(path, { cache: 'no-store' })).json();
+  document.querySelector('h1').textContent = 'Face-test foils: repeat6';
+  document.getElementById('k').textContent = C.FOIL_K;
+  document.getElementById('step').textContent = C.FOIL_STEP;
+  const round = (v) => (typeof v === 'number' ? Math.round(v * 1000) / 1000 : v);
+  const regenerated = [];
+  Object.keys(stim.stranger_sets).forEach((k) => stim.stranger_sets[k].forEach((e) => {
+    const f = R.makeFoil(e.stranger, e.foil_change, e.foil_seed, C).spec;
+    const foil = { id: e.foil.id, gender: e.stranger.gender, band: e.stranger.band };
+    P.FEATURE_KEYS.forEach((key) => (foil[key] = round(f[key])));
+    const same = P.FEATURE_KEYS.every((key) => foil[key] === e.foil[key]);
+    regenerated.push(e.stranger.id + (same ? ' unchanged' : ' regenerated'));
+    e.foil = foil;
+  }));
+  const checks = R.checkFoilsRepeat6(stim);
+  const ok = checks.every((c) => c[0]);
+  document.getElementById('checks').innerHTML = checks.map(([g, t]) => `<li class="${g ? '' : 'bad'}">${g ? '✓' : '✗'} ${t}</li>`).join('') +
+    `<li>${regenerated.join(' · ')}</li>`;
+  document.getElementById('grid').innerHTML = Object.keys(stim.stranger_sets).map((k) => {
+    const E = stim.stranger_sets[k];
+    return E.map((e) => `<div class="cell">${P.svg(e.stranger)}${k} · ${e.scene_set_id} · ${e.stranger.id}</div>`).join('') +
+      E.map((e) => `<div class="cell">${P.svg(e.foil)}${e.foil.id} · ${e.foil_change.join(' → ')}</div>`).join('');
+  }).join('');
+  // Same compact layout as tools/build_repeat6_stimuli.py.
+  const J = (v) => JSON.stringify(v).replace(/,"/g, ', "').replace(/":/g, '": ');
+  const JP = (v) => JSON.stringify(v);
+  function format(d) {
+    const top = [];
+    for (const [k, v] of Object.entries(d)) {
+      if (k === 'words' || k === 'incidental_types' || k === 'incidental_colors') top.push(`  ${JP(k)}: {\n` + Object.entries(v).map(([a, b]) => `    ${JP(a)}: ${J(b)}`).join(',\n') + '\n  }');
+      else if (k === 'scene_sets') top.push(`  ${JP(k)}: [\n` + v.map((s) => '    ' + J(s)).join(',\n') + '\n  ]');
+      else if (k === 'stranger_sets') top.push(`  ${JP(k)}: {\n` + Object.entries(v).map(([sk, rows]) => `    ${JP(sk)}: [\n` + rows.map((r) => {
+        const simple = Object.entries(r).filter(([, x]) => x === null || typeof x !== 'object' || Array.isArray(x));
+        const objs = Object.entries(r).filter(([, x]) => x !== null && typeof x === 'object' && !Array.isArray(x));
+        return '      {' + simple.map(([a, b]) => `${JP(a)}: ${J(b)}`).join(', ') + ',\n' + objs.map(([a, b]) => `       ${JP(a)}: ${J(b)}`).join(',\n') + '}';
+      }).join(',\n') + '\n    ]').join(',\n') + '\n  }');
+      else top.push(`  ${JP(k)}: ${J(v)}`);
+    }
+    return '{\n' + top.join(',\n') + '\n}\n';
+  }
+  const save = async () => {
+    if (!ok) { document.getElementById('status').textContent = 'Not saved: fix the failed rule(s) above first.'; return false; }
+    const r = await fetch('/__save?path=' + encodeURIComponent('experiment/stimuli/stimuli_repeat6.json'), { method: 'POST', body: format(stim) });
+    document.getElementById('status').textContent = r.ok ? 'Saved. Bump VERSION in config.js before deploying.' : 'Save failed: is tools/dev_server.py running?';
+    return r.ok;
+  };
+  document.getElementById('save').onclick = save;
+  window.MAKE_FOILS = { ok, save, stim, checks, regenerated };
+}
 </script>
 </body>
 </html>

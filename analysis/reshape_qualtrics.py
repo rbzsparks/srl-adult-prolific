@@ -12,6 +12,12 @@ Also reassembles full_data_json_1..N and checks it against the wide fields (prin
 The known and unfamiliar feature vectors (known_avatar / unfamiliar_avatar, "key=value;...") are unpacked into one
 column per feature: known_<key> and unfam_<key> (keys from FEATURE_KEYS in experiment/js/people.js).
 
+Both design versions (design_version = unique12 / repeat6; a blank value is read as unique12, the only version
+before v2.2):
+    familiarization rows: one per trial (12), with serial_position, and for repeat6 presentation (1/2) and lag
+    test rows:            one per test trial (36 for unique12, 18 for repeat6); serial_position = the scene set's
+                          first showing, serial_position_2 = its second showing (repeat6), lag = their distance
+
 Usage:
     python analysis/reshape_qualtrics.py qualtrics_export.csv -o long.csv [--include-incomplete] [--include-debug]
 """
@@ -52,6 +58,19 @@ def load_fields():
     return json.loads(txt[start: txt.rindex('}') + 1])
 
 
+def fields_for(f, design):
+    """Same as SRL.data.fieldsFor in the experiment: unique12 lists with the design's overrides."""
+    o = (f.get('designs') or {}).get(design)
+    if not o:
+        return f
+    f = dict(f)
+    f['participant'] = f['participant'] + o.get('participant_extra', [])
+    for k in ('fam_per_scene', 'scene_set_ids'):
+        if k in o:
+            f[k] = o[k]
+    return f
+
+
 def read_export(path):
     with open(path, newline='', encoding='utf-8-sig') as fh:
         rows = list(csv.reader(fh))
@@ -70,7 +89,7 @@ def read_export(path):
 
 LONG_COLS = [
     # participant level
-    'prolific_pid', 'study_id', 'session_id', 'response_id', 'category', 'list', 'test_block_order', 'surprise_test', 'name_label_shown', 'mouseview_on',
+    'prolific_pid', 'study_id', 'session_id', 'response_id', 'design_version', 'design_version_source', 'stranger_set', 'category', 'list', 'test_block_order', 'surprise_test', 'name_label_shown', 'mouseview_on',
     'relationship_type', 'is_kin', 'ios', 'contact_freq', 'duration', 'name_length', 'name_flagged_title', 'name_suspect',
     'known_avatar', 'unfamiliar_avatar', 'unfam_changes', 'unfam_k', 'unfam_identity_dist', 'unfamiliar_name',
     'likeness_rating', 'likeness_rt_ms', 'designer_edits', 'designer_resets', 'designer_tabs_visited', 't_designer_ms', 'audio_check_pass',
@@ -78,12 +97,12 @@ LONG_COLS = [
     'fullscreen_exits', 'tab_switches', 'reload_pre_fam', 'reloaded_post_fam', 'browser', 'screen_w', 'screen_h', 'total_ms',
     'expected_test', 'strategy', 'attention_check_1', 'attention_check_2', 'age', 'gender',
     # trial level
-    'phase', 'trial_index', 'serial_position', 'scene_set_id', 'condition', 'stranger_id', 'word', 'incidental_type', 'incidental_color',
+    'phase', 'trial_index', 'serial_position', 'presentation', 'lag', 'serial_position_2', 'scene_set_id', 'condition', 'stranger_id', 'word', 'incidental_type', 'incidental_color',
     'viewing_time_ms', 'timed_out', 'label_audio_ms',
     'test_type', 'target_id', 'foil_ids', 'target_position', 'response_id_choice', 'correct', 'rt_ms',
     'k', 'f'
 ] + FEATURE_COLS
-PCOLS_FROM_ED = ['category', 'list', 'test_block_order', 'surprise_test', 'name_label_shown', 'mouseview_on', 'relationship_type', 'is_kin', 'ios',
+PCOLS_FROM_ED = ['design_version', 'design_version_source', 'stranger_set', 'category', 'list', 'test_block_order', 'surprise_test', 'name_label_shown', 'mouseview_on', 'relationship_type', 'is_kin', 'ios',
                  'contact_freq', 'duration', 'name_length', 'name_flagged_title', 'name_suspect', 'known_avatar', 'unfamiliar_avatar',
                  'unfam_changes', 'unfam_k', 'unfam_identity_dist', 'unfamiliar_name', 'likeness_rating', 'likeness_rt_ms',
                  'designer_edits', 'designer_resets', 'designer_tabs_visited', 't_designer_ms', 'audio_check_pass', 'filler2_accuracy',
@@ -102,9 +121,11 @@ def to_int(x):
         return None
 
 
-def reshape(recs, F, include_incomplete=False, include_debug=False):
+def reshape(recs, F0, include_incomplete=False, include_debug=False):
     out, problems = [], []
     for d in recs:
+        design = d.get('design_version') or 'unique12'
+        F = fields_for(F0, design)
         if not d.get('category'):
             continue  # screened out / never reached the experiment
         if d.get('debug') == '1' and not include_debug:
@@ -112,21 +133,27 @@ def reshape(recs, F, include_incomplete=False, include_debug=False):
         if d.get('reloaded_post_fam') == '1' and not include_incomplete:
             continue
         base = {c: d.get(c, '') for c in PCOLS_FROM_ED}
+        base['design_version'] = design
         base.update(unpack_vec(d.get('known_avatar'), 'known_'))
         base.update(unpack_vec(d.get('unfamiliar_avatar'), 'unfam_'))
         for c, src in NATIVE.items():
             base[c] = d.get(src, '')
         ios = to_int(d.get('ios'))
-        fam = {}
+        fam, fam2 = {}, {}
         for i in range(1, F['fam_count'] + 1):
             p = f"{F['fam_prefix']}{i:02d}_"
             if not d.get(p + 'scene_set_id'):
                 continue
-            row = dict(base, phase='familiarization', trial_index=i, serial_position=d.get(p + 'serial_position') or i, scene_set_id=d[p + 'scene_set_id'], condition=d[p + 'condition'],
+            pres = d.get(p + 'presentation', '') or ('1' if design == 'unique12' else '')
+            row = dict(base, phase='familiarization', trial_index=i, serial_position=d.get(p + 'serial_position') or i,
+                       presentation=pres, lag=d.get(p + 'lag', ''), scene_set_id=d[p + 'scene_set_id'], condition=d[p + 'condition'],
                        stranger_id=d[p + 'stranger_id'], word=d[p + 'word'], incidental_type=d[p + 'incidental_type'],
                        incidental_color=d[p + 'incidental_color'], viewing_time_ms=d[p + 'view_ms'], timed_out=d[p + 'timed_out'],
                        label_audio_ms=d[p + 'label_audio_ms'])
-            fam[row['scene_set_id']] = row
+            if str(pres) != '2':
+                fam[row['scene_set_id']] = row  # first showing describes the scene set
+            else:
+                fam2[row['scene_set_id']] = row
             out.append(row)
         # Test rows: ordered by block, then scene set (the JSON backup has the exact presentation order).
         order = (d.get('test_block_order') or 'word>face>incid').split('>')
@@ -140,7 +167,9 @@ def reshape(recs, F, include_incomplete=False, include_debug=False):
                 fi = fam.get(sid, {})
                 cond = fi.get('condition', '')
                 k = (ios - 1) if (cond == 'known' and ios is not None) else (0 if cond == 'unfamiliar' else '')
-                tests.append(dict(base, phase='test', trial_index=n, serial_position=fi.get('serial_position', ''), scene_set_id=sid, condition=cond, stranger_id=fi.get('stranger_id', ''),
+                tests.append(dict(base, phase='test', trial_index=n, serial_position=fi.get('serial_position', ''),
+                                  serial_position_2=fam2.get(sid, {}).get('serial_position', ''), lag=fam2.get(sid, {}).get('lag', ''),
+                                  scene_set_id=sid, condition=cond, stranger_id=fi.get('stranger_id', ''),
                                   word=fi.get('word', ''), incidental_type=fi.get('incidental_type', ''), incidental_color=fi.get('incidental_color', ''),
                                   test_type=t, target_id={'word': '', 'face': fi.get('stranger_id', ''), 'incid': fi.get('incidental_color', '')}[t],
                                   foil_ids=d[p + 'foils'], target_position=d[p + 'position'], response_id_choice=d[p + 'choice'],

@@ -1,8 +1,10 @@
 /* fields.js: the single list of Qualtrics embedded-data fields written by the experiment.
  * Read by data.js (JS) and by tools/build_qsf.py and analysis/reshape_qualtrics.py (Python parses the object
- * literal after "window.SRL_FIELDS ="). Keep it valid JSON. */
+ * literal after "window.SRL_FIELDS ="). Keep it valid JSON.
+ * "designs" overrides the lists for the repeat6 version (participant_extra is appended to participant). */
 window.SRL_FIELDS = {
   "participant": [
+    "design_version", "design_version_source",
     "category", "list", "relationship_type", "is_kin", "ios", "contact_freq", "duration",
     "name_length", "name_flagged_title", "name_suspect",
     "known_avatar", "unfamiliar_avatar", "unfam_changes", "unfam_k", "unfam_identity_dist", "unfamiliar_name",
@@ -29,5 +31,12 @@ window.SRL_FIELDS = {
   "test_per_trial": ["choice", "correct", "rt_ms", "foils", "position"],
   "json_prefix": "full_data_json_",
   "json_chunks": 4,
-  "json_meta": ["full_data_json_n", "full_data_json_truncated"]
+  "json_meta": ["full_data_json_n", "full_data_json_truncated"],
+  "designs": {
+    "repeat6": {
+      "participant_extra": ["stranger_set"],
+      "fam_per_scene": ["scene_set_id", "presentation", "serial_position", "lag", "condition", "stranger_id", "word", "incidental_type", "incidental_color", "view_ms", "timed_out", "label_audio_ms"],
+      "scene_set_ids": ["ss1", "ss2", "ss3", "ss4", "ss5", "ss6"]
+    }
+  }
 };

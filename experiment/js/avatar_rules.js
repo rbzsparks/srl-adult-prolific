@@ -121,5 +121,39 @@ SRL.avatarRules = (function () {
     return out;
   }
 
-  return { ID_SLIDERS, HAIR_NAMED, HAIR_LABEL, SIMILAR, namedColour, colourSteps, moveIdentity, unfamiliar, makeFoil, checkFoils, distance };
+  /* Repeat-6 foil rules. stim = stimuli_repeat6.json. Entries of each stranger set are in scene-set order; entries
+   * 0/1, 2/3, 4/5 are the matched pairs (first-listed member in the odd scene set = known in list A). */
+  function checkFoilsRepeat6(stim) {
+    const out = [];
+    const all = [];
+    Object.keys(stim.stranger_sets).forEach((k) => stim.stranger_sets[k].forEach((e) => all.push(e.stranger)));
+    const worn = { style: new Set(all.map((s) => s.hairStyle)), colour: new Set(all.map((s) => namedColour(s.hairColor))) };
+    const grey = (s) => s.hairGray > 0.5;
+    Object.keys(stim.stranger_sets).forEach((k) => {
+      const E = stim.stranger_sets[k], pairs = [[E[0], E[1]], [E[2], E[3]], [E[4], E[5]]];
+      const match = pairs.every(([a, b]) => a.stranger.gender === b.stranger.gender && a.stranger.age === b.stranger.age);
+      out.push([match, `Set ${k}: each pair matches on gender presentation and age band`]);
+      const typesOk = pairs.every(([a, b]) => (grey(a.stranger) && grey(b.stranger))
+        ? a.foil_change[0] === 'style' && b.foil_change[0] === 'style'
+        : a.foil_change[0] !== b.foil_change[0]);
+      out.push([typesOk, `Set ${k}: one style + one colour foil per pair (both style when both have grey hair): ` + pairs.map(([a, b]) => a.foil_change[0] + '/' + b.foil_change[0]).join(', ')]);
+      const mixed = pairs.filter(([a, b]) => a.foil_change[0] !== b.foil_change[0]).map(([a]) => a.foil_change[0]);
+      let alt = true; for (let i = 1; i < mixed.length; i++) if (mixed[i] === mixed[i - 1]) alt = false;
+      out.push([alt, `Set ${k}: first-listed member's foil type alternates across mixed pairs (${mixed.join(', ')})`]);
+      const cond = [0, 1].map((x) => [x, x + 2, x + 4].map((i) => E[i].foil_change[0]));
+      out.push([cond.every((c) => c.indexOf('style') >= 0 && c.indexOf('colour') >= 0), `Set ${k}: each condition gets both foil types (odd: ${cond[0].join(', ')}; even: ${cond[1].join(', ')})`]);
+      const use = {}; E.forEach((e) => { if (e.foil_change[0] === 'style') use[e.foil_change[1]] = (use[e.foil_change[1]] || 0) + 1; });
+      out.push([Object.keys(use).every((t) => use[t] <= 2), `Set ${k}: each target style used by at most 2 foils`]);
+    });
+    const ents = []; Object.keys(stim.stranger_sets).forEach((k) => stim.stranger_sets[k].forEach((e) => ents.push(e)));
+    const nw = ents.filter((e) => !worn[e.foil_change[0]].has(e.foil_change[1])).map((e) => e.stranger.id);
+    out.push([!nw.length, 'Every new style or colour is also worn by a stranger' + (nw.length ? ' (not: ' + nw.join(', ') + ')' : '')]);
+    const sim = ents.filter((e) => e.foil_change[0] === 'style' && !(SIMILAR[e.stranger.hairStyle] || []).includes(e.foil_change[1])).map((e) => e.stranger.id);
+    out.push([!sim.length, 'Style targets come from the similar-style list' + (sim.length ? ' (not: ' + sim.join(', ') + ')' : '')]);
+    const bad = ents.filter((e) => e.foil_change[0] === 'colour' && (colourSteps(namedColour(e.stranger.hairColor))[e.foil_change[1]] !== 1 || grey(e.stranger))).map((e) => e.stranger.id);
+    out.push([!bad.length, 'Colour changes are one step and never on grey hair' + (bad.length ? ' (not: ' + bad.join(', ') + ')' : '')]);
+    return out;
+  }
+
+  return { ID_SLIDERS, HAIR_NAMED, HAIR_LABEL, SIMILAR, namedColour, colourSteps, moveIdentity, unfamiliar, makeFoil, checkFoils, checkFoilsRepeat6, distance };
 })();

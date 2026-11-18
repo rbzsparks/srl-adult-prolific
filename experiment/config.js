@@ -3,7 +3,14 @@
  * Edit this file, push to GitHub Pages, and the live study picks it up.
  * ===================================================================== */
 window.SRL_CONFIG = {
-  VERSION: '2.1.1',
+  VERSION: '2.2.0',
+
+  /* ---------- Design version ---------- */
+  // 'unique12' = 12 scene sets, each shown once (36 test trials).
+  // 'repeat6'  = 6 scene sets, each shown twice (18 test trials), with a stranger set X / Y.
+  // Each .qsf passes design_version to the experiment; this value is only the fallback, recorded as
+  // design_version_source = 'config_fallback' (a survey that did not pass it through then shows up in the data).
+  DESIGN_VERSION: 'unique12',
 
   /* ---------- Qualtrics ---------- */
   // 'legacy' = classic layouts (Flat / Modern / Classic): Qualtrics.SurveyEngine.setEmbeddedData
@@ -110,7 +117,9 @@ window.SRL_CONFIG = {
   /* ---------- Paths (relative to the experiment base URL) ---------- */
   AUDIO_DIR: 'audio/',
   STIMULI_JSON: 'stimuli/stimuli.json',
+  STIMULI_JSON_REPEAT6: 'stimuli/stimuli_repeat6.json',
 
   /* ---------- Copy ---------- */
-  ESTIMATED_MINUTES: 19
+  ESTIMATED_MINUTES: 19,          // unique12 (consent page of qualtrics/survey.qsf)
+  ESTIMATED_MINUTES_REPEAT6: 17   // repeat6 (consent page of qualtrics/repeat6/survey.qsf)
 };

@@ -16,7 +16,7 @@ Workflow
         Writes audio_src/elevenlabs/takes/<clip_id>_t<k>.mp3 and takes/index.json.
   5. Listen and choose takes in tools/audio_review.html (served by tools/dev_server.py).
         Saves audio_src/elevenlabs/selection.json.
-  6. python tools/elevenlabs_tts.py finalize
+  6. python tools/elevenlabs_tts.py finalize [--only label_str10_tefo ...]
         Copies the chosen takes to audio_src/elevenlabs/selected/ and runs normalize_audio.py
         (trim, -16 LUFS, 44.1 kHz mono MP3 + OGG into experiment/audio/, manifest updated).
 
@@ -236,6 +236,8 @@ def cmd_finalize(a):
     os.makedirs(dest)
     source = {}
     for cid, e in index.items():
+        if a.only and cid not in a.only:
+            continue  # --only: re-normalize just these clips; every other file is left as it is
         k = int(sel.get(cid, 1)) - 1
         t = e['takes'][k]
         shutil.copy(os.path.join(TAKES, t['file']), os.path.join(dest, cid + '.mp3'))
@@ -262,7 +264,8 @@ def main():
     g.add_argument('--takes', type=int, default=3)
     g.add_argument('--only', nargs='*')
     g.add_argument('--force', action='store_true', help='discard existing takes for these clips')
-    sub.add_parser('finalize')
+    fz = sub.add_parser('finalize')
+    fz.add_argument('--only', nargs='*', help='finalize only these clip ids (other audio files are not touched)')
     a = ap.parse_args()
     {'models': cmd_models, 'voices': cmd_voices, 'cast': cmd_cast, 'generate': cmd_generate, 'finalize': cmd_finalize}[a.cmd](a)
 

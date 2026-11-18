@@ -119,7 +119,7 @@ SRL.scene = (function () {
     const st = build(el, sc, ctx);
     const t0 = U.now();
     const stopMV = SRL_CONFIG.MOUSEVIEW ? startMouseView(st, el) : null;
-    if (ctx.debug) SRL.ui.debug(`${sc.id} | ${sc.condition} | name ${ctx.showName === false ? 'hidden' : 'shown'} | ${sc.stranger.id} | ${sc.word} | ${sc.incidental}/${sc.incidental_color} | list ${ctx.list}`);
+    if (ctx.debug) SRL.ui.debug(`${sc.id}${sc.presentation ? ' (' + sc.presentation + ')' : ''} | ${sc.condition} | name ${ctx.showName === false ? 'hidden' : 'shown'} | ${sc.stranger.id} | ${sc.word} | ${sc.incidental}/${sc.incidental_color} | list ${ctx.list}`);
     const S = st.stranger, Ot = st.other;
     S.set(Object.assign({ smile: 0.3 }, GAZE.stranger.other));
     Ot.set(Object.assign({ smile: 0.2 }, GAZE.other.ahead));
@@ -136,7 +136,7 @@ SRL.scene = (function () {
 
     // 2. Greeting: "Hi! Good to see you!" with lip-sync and a slight head bob.
     const tg = U.now();
-    const greet = await SRL.audio.play('greet_' + sc.id, {
+    const greet = await SRL.audio.play(sc.greet_clip || 'greet_' + sc.id, {
       onAmp: (a) => { const e = (U.now() - tg) / 1000; S.set({ mouth: a, nod: GAZE.stranger.other.nod + Math.sin(e * 7) * 0.7 }); }
     });
     S.set({ mouth: 0, nod: GAZE.stranger.other.nod });
@@ -153,7 +153,7 @@ SRL.scene = (function () {
     // 4. Label: "Look! It's a X! A X!" with the gaze sequence driven by the clip's pause structure.
     const tl = U.now();
     let labelOnset = null;
-    const label = await SRL.audio.play('label_' + sc.id, {
+    const label = await SRL.audio.play(sc.label_clip || 'label_' + sc.id, {
       onAmp: (a) => S.set({ mouth: a }),
       onSegment: (i) => {
         if (i === 0) {
@@ -186,7 +186,7 @@ SRL.scene = (function () {
     el.innerHTML = '';
     SRL.ui.debug('');
     await U.sleep(T.ISI);
-    const info = SRL.audio.info('label_' + sc.id) || {};
+    const info = SRL.audio.info(sc.label_clip || 'label_' + sc.id) || {};
     return Object.assign({
       scene_set_id: sc.id, condition: sc.condition, stranger_id: sc.stranger.id, word: sc.word, object_id: sc.object_id,
       incidental_type: sc.incidental, incidental_color: sc.incidental_color,
