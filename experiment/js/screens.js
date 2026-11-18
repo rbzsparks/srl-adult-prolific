@@ -13,9 +13,8 @@ SRL.screens = (function () {
       <h1>Welcome</h1>
       <p>In this part of the study you will:</p>
       <ol>
-        <li>answer a few questions about someone you know and make a simple cartoon avatar of them,</li>
-        <li>do a short puzzle,</li>
-        <li>watch short animated scenes of people meeting each other,</li>
+        <li>answer a few questions about someone you know, make a simple cartoon avatar of them, and do a short matching task,</li>
+        <li>watch short animated scenes,</li>
         <li>do a short arithmetic task, and answer some questions.</li>
       </ol>
       <p><b>Sound is required.</b> Please use headphones or speakers and keep them on throughout.</p>
@@ -71,7 +70,7 @@ SRL.screens = (function () {
     input.focus();
     input.addEventListener('keydown', (e) => { if (e.key === 'Enter') btn.click(); });
     let attempts = 0, flagged = 0, invalidCount = 0;
-    if (S.auto) setTimeout(() => { input.value = 'Alex'; btn.click(); }, 150);
+    if (S.auto) setTimeout(() => { input.value = (window.SRL_AUTOPILOT_TEXT || {}).name || 'Alex'; btn.click(); }, 150);
     for (;;) {
       await UI.onClick(btn);
       attempts++;
@@ -109,7 +108,6 @@ SRL.screens = (function () {
     d.is_kin = C().KIN_TYPES.indexOf(d.relationship_type) >= 0 ? 1 : 0;
     return d;
   }
-  const contactFreq = (el, S) => choice(el, S, 'How often', `How often do you see or talk to <b>${nm(S)}</b>?`, C().CONTACT_FREQ, 'contact_freq', 2);
   const duration = (el, S) => choice(el, S, 'How long', `How long have you known <b>${nm(S)}</b>?`, C().DURATION, 'duration', 1);
 
   function iosSvg(level, name) {
@@ -182,12 +180,12 @@ SRL.screens = (function () {
   }
 
   const famInstructions = (el, S) => message(el, S, 'Watching scenes',
-    `<p class="srl-lead">Next, you'll watch ${S.design.fam.length} short scenes of people meeting each other.</p>
-     <p>In each scene, someone you haven't seen before comes over to talk. In some scenes they meet <b>${nm(S)}</b>; in others they meet someone else.</p>
+    `<p class="srl-lead">Next you'll watch short moments from <b>${nm(S)}</b>'s and <b>${esc(S.unfamiliarName)}</b>'s days, as they run into people they know. Imagine you're really watching ${nm(S)} and ${esc(S.unfamiliarName)}.</p>
      ${S.design && S.design.design_version === 'repeat6' ? '<p>Scenes may be shown more than once.</p>' : ''}
+     ${S.steps && S.steps.checkins ? `<p>Every few scenes, we'll ask a quick question about ${nm(S)} and about ${esc(S.unfamiliarName)}. There are no right answers.</p>` : ''}
      <p>Please watch each scene carefully. When a scene is finished, press <b>SPACE</b> when you're ready to continue.</p>
      ${C().SURPRISE_TEST ? '' : '<p><b>Afterwards, we will test your memory for what you saw.</b></p>'}
      <p class="srl-note">Make sure your sound is on.</p>`, 'Start the scenes');
 
-  return { intro, nameEntry, relationship, ios, contactFreq, duration, audioCheck, message, famInstructions, isTitle };
+  return { intro, nameEntry, relationship, ios, duration, audioCheck, message, famInstructions, isTitle };
 })();

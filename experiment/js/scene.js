@@ -201,5 +201,5 @@ SRL.scene = (function () {
     }, mv);
   }
 
-  return { run, AOI_NORM, POS };
+  return { run, AOI_NORM, POS, GAZE };
 })();

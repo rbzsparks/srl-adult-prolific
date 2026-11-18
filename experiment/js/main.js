@@ -1,6 +1,9 @@
 /* main.js: builds the jsPsych timeline and runs the experiment.
- * Order: intro → name → relationship → IOS → contact → duration → avatar designer → audio check → scene instructions →
- *        filler 1 ("get ready" countdown) → familiarization (12 scenes) → filler 2 (arithmetic) → tests (3 blocks) → end.
+ * Order: intro → name → relationship → IOS → contact (2 questions) → duration → recall prompts* → avatar designer (with the
+ *        recall notes) → likeness rating → one-time revision* → confirmation → unfamiliar person introduced → avatar–name
+ *        matching* → audio check → scene instructions → filler 1 ("get ready" countdown) → familiarization (12 scenes, with
+ *        person check-ins* after trials 3, 6, 9) → "how much did the avatar feel like [name]" → filler 2 (arithmetic) →
+ *        tests (3 blocks) → end.   (* = can be switched off: config, or binding=0/1 / checkins=0/1 per participant)
  * start(opts): opts = { base, mode: 'qualtrics'|'local', params: {...}, finish: function } */
 SRL.main = (function () {
   const U = SRL.util, UI = SRL.ui;
@@ -43,7 +46,7 @@ SRL.main = (function () {
     const debug = params.debug === '1' || params.debug === 'true';
     const S = {
       params, mode: opts.mode, debug, auto: debug && params.auto === '1',
-      p: {}, fam: [], tests: [], events: [], filler2Trials: [], saveStatus: {},
+      p: {}, fam: [], tests: [], events: [], filler2Trials: [], matchTrials: [], checkinRows: [], saveStatus: {},
       sessionKey: Date.now().toString(36), finished: false
     };
     window.SRL_STATE_FOR_DEBUG = debug ? S : undefined;
@@ -71,6 +74,26 @@ SRL.main = (function () {
     if (!S.list) S.list = U.pick(['A', 'B']);
     if (S.designVersion === 'repeat6' && !S.strangerSet) S.strangerSet = U.pick(['X', 'Y']);
     if (S.strangerSet) S.p.stranger_set = S.strangerSet;
+    // Person-binding steps and check-ins: config defaults, overridden per participant by binding=0/1 (recall, revision,
+    // matching) and checkins=0/1. A disabled step is skipped and its fields stay blank.
+    const ov = (v) => (v === '0' ? false : v === '1' ? true : null);
+    const bOv = ov(params.binding), cOv = ov(params.checkins);
+    S.steps = {
+      recall: bOv !== null ? bOv : C.RECALL_ENABLED !== false,
+      revision: bOv !== null ? bOv : C.REVISION_ENABLED !== false,
+      matching: bOv !== null ? bOv : C.MATCHING_ENABLED !== false,
+      checkins: cOv !== null ? cOv : C.CHECKINS_ENABLED !== false
+    };
+    // A second random stream (from the same recorded seed) for the binding steps, so they never shift the draws
+    // that build the scene design.
+    S.rng2 = SRL.people.rng((seed ^ 0x5BD1E995) >>> 0);
+    S.matchKeymap = S.rng2() < 0.5 ? 'F=match' : 'J=match';
+    S.checkinOrder = SRL.binding.CHECKIN_ORDERS[Math.floor(S.rng2() * SRL.binding.CHECKIN_ORDERS.length)];
+    Object.assign(S.p, {
+      recall_enabled: S.steps.recall ? 1 : 0, revision_enabled: S.steps.revision ? 1 : 0, matching_enabled: S.steps.matching ? 1 : 0,
+      checkins_enabled: S.steps.checkins ? 1 : 0, steps_source: bOv !== null || cOv !== null ? 'override' : 'config',
+      checkin_order: S.steps.checkins ? S.checkinOrder.join('>') : ''
+    });
     Object.assign(S.p, {
       category: S.category, list: S.list, seed, exp_version: C.VERSION, qualtrics_engine: C.QUALTRICS_ENGINE,
       surprise_test: C.SURPRISE_TEST ? 1 : 0, mouseview_on: C.MOUSEVIEW ? 1 : 0, debug: debug ? 1 : 0,
@@ -165,6 +188,7 @@ SRL.main = (function () {
     SRL.progress.guard(true);
     canvas.innerHTML = '';
     jsPsych = initJsPsych({ display_element: canvas, on_finish: () => finish('complete') });
+    if (debug) S.jsPsychJson = () => jsPsych.data.get().json();   // debug only: read by tools/privacy_check.html
 
     const sec = (name) => (ms) => (S.p['t_' + name + '_ms'] = (S.p['t_' + name + '_ms'] || 0) + ms);
     const step = (stage, section, fn) => ({
@@ -177,6 +201,8 @@ SRL.main = (function () {
       }
     });
     const keep = (d, keys) => { keys.forEach((k) => { if (d[k] !== undefined) S.p[k] = d[k]; }); return d; };
+    const all = (d) => { Object.assign(S.p, d); return d; };   // binding steps return only fields from fields.js
+    const B = SRL.binding;
     const F2_KEYS = ['filler2_accuracy', 'filler2_n_attempted', 'filler2_n_timeout', 'filler2_low_engagement'];
     const Sc = SRL.screens;
 
@@ -185,42 +211,75 @@ SRL.main = (function () {
       step('name', 'setup', async (el) => keep(await Sc.nameEntry(el, S), ['name_length', 'name_flagged_title', 'name_suspect', 'name_attempts', 'name_invalid_attempts'])),
       step('relationship', 'setup', async (el) => keep(await Sc.relationship(el, S), ['relationship_type', 'is_kin'])),
       step('ios', 'setup', async (el) => keep(await Sc.ios(el, S), ['ios'])),
-      step('contact_freq', 'setup', async (el) => keep(await Sc.contactFreq(el, S), ['contact_freq'])),
+      step('contact', 'setup', async (el) => all(await B.contact(el, S))),
       step('duration', 'setup', async (el) => keep(await Sc.duration(el, S), ['duration'])),
+      step('recall', 'recall', async (el) => (S.steps.recall ? all(await B.recall(el, S)) : {})),
       step('designer', 'designer', async (el) => {
         const d = await SRL.designer.run(el, S);
         S.knownSpec = d.spec;
-        const u = SRL.avatarRules.unfamiliar(d.spec, S.p.seed, C);
-        S.unfamiliarSpec = u.spec;
-        S.unfamiliarName = chooseUnfamiliarName(S.knownName);
+        if (!S.steps.revision) S.notes = null;   // the notes leave memory once the last designer visit is over
         const keys = ['designer_edits', 'designer_resets', 'designer_tabs_visited'].concat(SRL.designer.TABS.map((t) => 't_designer_' + t.id + '_ms'), SRL.designer.TABS.map((t) => 'designer_edits_' + t.id));
-        keys.forEach((k) => (S.p[k] = d[k]));
-        Object.assign(S.p, {
-          known_avatar: SRL.people.vecString(d.spec), unfamiliar_avatar: SRL.people.vecString(u.spec),
-          unfam_changes: u.changes.join('|'), unfam_k: u.K, unfam_identity_dist: +u.distance.toFixed(3),
-          unfamiliar_name: S.unfamiliarName
-        });
-        const out = { known_avatar: S.p.known_avatar, unfamiliar_avatar: S.p.unfamiliar_avatar, unfam_changes: S.p.unfam_changes, unfam_k: u.K,
-          unfam_identity_dist: S.p.unfam_identity_dist, unfamiliar_name: S.unfamiliarName };
-        keys.forEach((k) => (out[k] = d[k]));
+        const out = {};
+        keys.forEach((k) => { S.p[k] = d[k]; out[k] = d[k]; });
         return out;
       }),
-      step('likeness', 'designer', async (el) => keep(await SRL.designer.likeness(el, S, S.knownSpec), ['likeness_rating', 'likeness_rt_ms'])),
+      step('likeness', 'designer', async (el) => {
+        const a = await SRL.designer.likeness(el, S, S.knownSpec);
+        Object.assign(S.p, { likeness_1: a.likeness_rating, likeness_rating: a.likeness_rating, likeness_rt_ms: a.likeness_rt_ms });
+        if (S.steps.revision) {
+          S.p.revised = 0;
+          S.p.revision_offered = a.likeness_rating <= C.REVISION_MAX_RATING ? 1 : 0;
+          if (S.p.revision_offered && await B.revisionOffer(el, S, S.knownSpec)) {
+            S.p.revised = 1;
+            const d2 = await SRL.designer.run(el, S, { start: S.knownSpec, revision: true });
+            S.knownSpec = d2.spec;
+            Object.assign(S.p, { designer_ms_2: d2.designer_ms, designer_edits_2: d2.designer_edits });
+            const b = await SRL.designer.likeness(el, S, S.knownSpec);
+            Object.assign(S.p, { likeness_2: b.likeness_rating, likeness_rating: b.likeness_rating });
+          }
+        }
+        S.notes = null;   // the notes leave memory once the last designer visit is over
+        const out = {};
+        ['likeness_1', 'likeness_rt_ms', 'revision_offered', 'revised', 'likeness_2', 'likeness_rating', 'designer_ms_2', 'designer_edits_2'].forEach((k) => { if (S.p[k] !== undefined) out[k] = S.p[k]; });
+        return out;
+      }),
+      step('confirm', 'binding', async (el) => all(await B.confirm(el, S))),
+      step('introduce', 'binding', async (el) => {
+        // The unfamiliar person is generated from the FINAL known avatar (after any revision).
+        const u = SRL.avatarRules.unfamiliar(S.knownSpec, S.p.seed, C);
+        S.unfamiliarSpec = u.spec;
+        S.unfamiliarName = chooseUnfamiliarName(S.knownName);
+        const out = {
+          known_avatar: SRL.people.vecString(S.knownSpec), unfamiliar_avatar: SRL.people.vecString(u.spec),
+          unfam_changes: u.changes.join('|'), unfam_k: u.K, unfam_identity_dist: +u.distance.toFixed(3), unfamiliar_name: S.unfamiliarName
+        };
+        all(out);
+        return all(Object.assign(out, await B.introduce(el, S)));
+      }),
+      step('matching', 'matching', async (el) => (S.steps.matching ? all(await B.matching(el, S)) : {})),
       step('audio_check', 'audio_check', async (el) => keep(await Sc.audioCheck(el, S), ['audio_check_pass', 'audio_check_attempts'])),
       step('fam_instructions', 'fam', async (el) => { SRL.progress.stage('fam'); return Sc.famInstructions(el, S); }),
       step('filler1', 'filler1', (el) => SRL.fillers.getReady(el, S, S.timing.FILLER1))
     ];
-    S.design.fam.forEach((sc, i) => timeline.push(step('fam_scene', 'fam', async (el) => {
-      const ctx = { knownSpec: S.knownSpec, unfamiliarSpec: S.unfamiliarSpec, knownName: S.knownName, unfamiliarName: S.unfamiliarName,
-        timing: S.timing, debug: S.debug, auto: S.auto, list: S.list, showName: S.showName };
-      const r = await SRL.scene.run(el, sc, ctx);
-      r.serial_position = i + 1;
-      if (sc.presentation) { r.presentation = sc.presentation; r.lag = sc.lag; }
-      S.fam.push(r);
-      return r;
-    })));
-    timeline.push(step('filler2', 'filler2', async (el) => {
+    S.design.fam.forEach((sc, i) => {
+      timeline.push(step('fam_scene', 'fam', async (el) => {
+        const ctx = { knownSpec: S.knownSpec, unfamiliarSpec: S.unfamiliarSpec, knownName: S.knownName, unfamiliarName: S.unfamiliarName,
+          timing: S.timing, debug: S.debug, auto: S.auto, list: S.list, showName: S.showName };
+        const r = await SRL.scene.run(el, sc, ctx);
+        r.serial_position = i + 1;
+        if (sc.presentation) { r.presentation = sc.presentation; r.lag = sc.lag; }
+        S.fam.push(r);
+        return r;
+      }));
+      // Person check-ins after the configured trials (never after the last one), once SPACE has ended the scene.
+      const k = S.steps.checkins ? C.CHECKIN_AFTER_TRIALS.indexOf(i + 1) : -1;
+      if (k >= 0 && i + 1 < S.design.fam.length) timeline.push(step('checkin', 'checkin', async (el) => all(await B.checkin(el, S, k + 1, i + 1))));
+    });
+    timeline.push(step('represent', 'represent', async (el) => {
       SRL.progress.stage('post_fam');
+      return all(await B.represent(el, S));
+    }));
+    timeline.push(step('filler2', 'filler2', async (el) => {
       const d = await SRL.fillers.arithmetic(el, S, S.timing.FILLER2, S.timing.FILLER2_DEADLINE);
       S.filler2Trials = d.filler2_trials;
       keep(d, F2_KEYS);

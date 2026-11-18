@@ -2,8 +2,11 @@
 
 jsPsych 8.2.1 experiment, embedded in a **Qualtrics** survey (classic layout), recruited on **Prolific**.
 Participants name someone they know (closeness category assigned between subjects), rate closeness (IOS), contact
-frequency and relationship duration, build an avatar of that person, read the scene instructions, get a 15-second "get ready" countdown, watch 12 animated
-scenes with audio, do a 45-second arithmetic filler, and then take surprise memory tests for words, faces and incidental objects.
+frequency and relationship duration, picture that person and jot down a few private notes, build an avatar of them, confirm it,
+meet an unfamiliar person ("Jordan"), do a short avatar–name matching task, read the scene instructions, get a 15-second
+"get ready" countdown, watch 12 animated scenes with audio (with three short person check-ins), rate how much the avatar felt
+like their person, do a 45-second arithmetic filler, and then take surprise memory tests for words, faces and incidental objects.
+The steps that link the avatar to the person (v2.3) are in [§19](#19-linking-the-avatar-to-the-person-and-check-ins-v23).
 
 **Two versions share this codebase** (each runs as its own Qualtrics survey and Prolific study):
 - **unique12**: 12 scene sets, each shown once; 36 test trials. Survey: `qualtrics/survey.qsf`. Most of this README describes it.
@@ -33,6 +36,7 @@ Order of precedence for the design documents: `ANSWERS_ROUND2.md` > `UPDATES_v2.
 16. [What the researcher still needs to supply](#16-what-the-researcher-still-needs-to-supply)
 17. [Known limitations and untested paths](#17-known-limitations-and-untested-paths)
 18. [Repeat6 version (6 scene sets, each shown twice)](#18-repeat6-version-6-scene-sets-each-shown-twice)
+19. [Linking the avatar to the person, and check-ins (v2.3)](#19-linking-the-avatar-to-the-person-and-check-ins-v23)
 
 ---
 
@@ -46,8 +50,10 @@ experiment/                  ← publish this folder on GitHub Pages
   lib/jspsych.js             jsPsych 8.2.1 (vendored, so the study doesn't depend on a CDN)
   js/loader.js               loads everything from a base URL and starts the study
   js/main.js                 timeline, sections, reload handling, finishing
-  js/screens.js              intro, name, relationship, IOS, contact, duration, audio check, messages
-  js/designer.js             avatar designer (6 tabs, 16 sliders) + likeness rating
+  js/screens.js              intro, name, relationship, IOS, duration, audio check, messages, scene instructions
+  js/binding.js              contact (2 questions), recall notes, revision offer, confirmation, unfamiliar-person
+                             introduction, avatar–name matching, person check-ins, post-scene rating (§19)
+  js/designer.js             avatar designer (6 tabs, 16 sliders, recall-notes panel) + likeness rating
   js/people.js               shaded parametric figure renderer + animation rig (gaze, turn, mouth)
   js/avatar_rules.js         unfamiliar-person rule, natural hair-colour scale, similar styles, foil maker + checks
   js/objects.js              novel objects (12) and recolorable incidental objects (12)
@@ -80,6 +86,9 @@ tools/
                              (?design=repeat6: the repeat6 foils and their rules)
   build_repeat6_stimuli.py   builds stimuli_repeat6.json from stimuli.json (scene sets, stranger sets, foil changes)
   check_repeat6.html         1,000 repeat6 designs from the real stimuli.js: every order / test rule + balance tables
+  privacy_check.html         full automatic session; searches every output for the typed name and recall notes (§15)
+  hair_review.html           hair styles across textures, skin tones and hair colours, old vs. new drawing
+  hair_motion.html           every hair style looping through the scenes' look at the partner / at the object
   build_qsf.py               regenerates qualtrics/survey.qsf from config.js + fields.js
   make_placeholder_audio.py  placeholder TTS (Windows voices) → normalize
   normalize_audio.py         trim / −16 LUFS / limiter / 44.1 kHz mono / MP3 + OGG (rerun on final recordings)
@@ -105,6 +114,8 @@ Then open `http://localhost:8000/experiment/index.html?debug=1`. URL parameters:
 | `stranger_set` | repeat6 only: `X` \| `Y` (random if missing) |
 | `debug=1` | fillers shortened (countdown 5 s, arithmetic 15 s); condition / stimulus IDs shown on screen; no DataPipe; data downloaded |
 | `name_label` | `0` hides / `1` shows the name text beneath the person in scenes (overrides `SHOW_NAME_LABEL`) |
+| `binding` | `0` / `1` turns the recall, revision and matching steps off / on (overrides their config switches, §19) |
+| `checkins` | `0` / `1` turns the person check-ins off / on (overrides `CHECKINS_ENABLED`, §19) |
 | `auto=1` | with `debug=1`: autopilot clicks through the whole study (~3–4 min) |
 | `devsave=1` | with the dev server: write output files into `sample_data/` instead of downloading |
 | `reset=1` | clear the reload marker for this PROLIFIC_PID (otherwise a second visit counts as a reload) |
@@ -160,7 +171,7 @@ Survey flow in the .qsf:
 
 1. **Embedded Data**: `PROLIFIC_PID`, `STUDY_ID`, `SESSION_ID`, `debug`, `name_label` (from the URL), plus every field the experiment writes (392 fields in total; listed in `qualtrics/embedded_data_fields.txt`).
 2. **Device check** (JS, before consent): mobile/tablet (by user agent), or a screen smaller than 1024 × 650 physical pixels (either orientation; measured as CSS pixels × `devicePixelRatio`, so Windows display scaling or browser zoom doesn't fail an ordinary laptop) → message showing the detected reason and screen size → **End of Survey → redirect to `…/complete?cc=SCREENOUT_CODE`**. Qualtrics' preview has a **Mobile view** toggle; with it on, a phone-sized frame is shown, so preview with it off.
-3. **Consent** (placeholder text, shows the ~19 min estimate). "I do not agree" → "Please return this study on Prolific" (no Next button, no code).
+3. **Consent** (placeholder text, shows the ~22 min estimate, ~20 in repeat6, and says the typed name and notes are not saved). "I do not agree" → "Please return this study on Prolific" (no Next button, no code).
 4. **Randomizer**: present 1 of 6, **evenly present** on. Each element sets `category` (acquaintance / moderate / close) × `list` (A / B).
 5. **Experiment (JS)**: one question whose JS loads the experiment from `BASE_URL`; the Next button is hidden and clicked automatically when the participant finishes.
 6. **Post-test questions**: expected a test? (Yes / No / Not sure), strategy (optional text), 2 experience items with 2 attention checks between them, technical problems (optional).
@@ -211,7 +222,7 @@ fields appear in the data.
 - Study URL: `https://<your>.qualtrics.com/jfe/form/SV_xxx?PROLIFIC_PID={{%PROLIFIC_PID%}}&STUDY_ID={{%STUDY_ID%}}&SESSION_ID={{%SESSION_ID%}}`
 - Device filter: **Desktop only**. Listing text: **"Requires audio (headphones or speakers)."**
 - Completion code: the same `COMPLETION_CODE` as in the .qsf. Screen-out code (device check only): `SCREENOUT_CODE`.
-- Duration estimate shown on the consent page: about 19 min (`ESTIMATED_MINUTES`; 20 in v2.0, before the fillers were shortened; 17 before the v2 designer). Confirm it with the pilot (`total_ms`, `t_*_ms`, and Qualtrics `Duration`), then set pay at or above Prolific's recommended rate.
+- Duration estimate shown on the consent page: about 22 min (`ESTIMATED_MINUTES`; repeat6 20). v2.3 added about 2 min 40 s for the binding steps and check-ins; it was 19 in v2.1–2.2. The one repeat6 pilot before v2.3 took 10.4 min against an estimate of 17, so both numbers are probably generous. Confirm it with the pilot (`total_ms`, `t_*_ms`, and Qualtrics `Duration`), then set pay at or above Prolific's recommended rate.
 
 ## 6. Configuration and [DECISION] flags
 
@@ -223,7 +234,12 @@ All in `experiment/config.js`.
 | `COMPLETION_CODE`, `SCREENOUT_CODE` | placeholders | also set in the .qsf redirects (rebuild with `--completion-code` / `--screenout-code`) |
 | `DATAPIPE.EXPERIMENT_ID` | placeholder | backup is skipped while it's a placeholder or in debug mode |
 | `DESIGN_VERSION` | `'unique12'` | fallback only: each survey passes `design_version` to the experiment (§18). Recorded as `design_version`, with `design_version_source` = `qsf` (passed by the survey), `url` (local runs) or `config_fallback` |
-| `ESTIMATED_MINUTES_REPEAT6` | `17` | consent-page estimate in the repeat6 survey |
+| `ESTIMATED_MINUTES`, `ESTIMATED_MINUTES_REPEAT6` | `22`, `20` | consent-page estimates (unique12, repeat6) |
+| `RECALL_ENABLED`, `REVISION_ENABLED`, `MATCHING_ENABLED` | `true` | the binding steps (§19); `binding=0/1` overrides all three per participant |
+| `REVISION_MAX_RATING` | `4` | the revision is offered when the first likeness rating is this or lower |
+| `MATCH_TRIALS_PER_TYPE`, `MATCH_MAX_RT_MS`, `MATCH_FLAG_BELOW` | `6`, `2500`, `0.75` | matching task: 4 types × 6 = 24 trials; response window; `match_flag` threshold |
+| `CHECKINS_ENABLED`, `CHECKIN_AFTER_TRIALS` | `true`, `[3, 6, 9]` | person check-ins (§19); `checkins=0/1` overrides per participant |
+| `CONTACT_FREQ` | 7 options | both contact questions; listed most to least often, coded 7 … 1 |
 | `SURPRISE_TEST` | `true` | `false` adds "Afterwards, we will test your memory…" to the scene instructions; recorded as `surprise_test` |
 | `SHOW_NAME_LABEL` | `true` | `true` (the default again since v2.0.0) shows the name text beneath the known / unfamiliar person in every scene; `false` hides it (the name is still used in the setup questions and scene instructions). Override per participant with `name_label=0/1`, from the URL or a Qualtrics embedded field (§8). Recorded as `name_label_shown` |
 | `MOUSEVIEW` | `false` | blur-except-cursor spotlight + AOI dwell (`dwell_*_ms` in the JSON backup). Lightly tested only |
@@ -251,13 +267,18 @@ Inside the experiment block (Qualtrics handles consent, post-test, demographics 
 | 2 | Name entry (category prompt). Validation: 1–20 characters, letters / space / hyphen / apostrophe. Family titles are flagged (accepted on the 2nd attempt) | `t_setup_ms` |
 | 3 | "How do you know [name]?" (relationship type → `is_kin`) | `t_setup_ms` |
 | 4 | IOS (7 pictorial options) | `t_setup_ms` |
-| 5 | Contact frequency (6 options) | `t_setup_ms` |
+| 5 | Contact, two questions on one screen: in person, and other ways (texting, messaging, calls); 7 options each | `t_setup_ms` |
 | 6 | Relationship duration (5 options) | `t_setup_ms` |
-| 7 | Avatar designer: "Make an avatar that looks like [name]" (6 tabs: Skin → Face → Eyes → Nose & mouth → Hair → Extras; starts from a neutral face; "Reset this section"; no randomize) | `t_designer_ms`, `t_designer_<tab>_ms` |
-| 7b | Likeness: "How much does this avatar look like [name]?" (1–7) | `t_designer_ms` |
+| 6b | Recall: "picture the last time you saw [name]" (Continue after 8 s), then three short notes (never saved, §19) | `t_recall_ms` |
+| 7 | Avatar designer: "Make an avatar that looks like [name]" (6 tabs: Skin → Face → Eyes → Nose & mouth → Hair → Extras; starts from a neutral face; "Reset this section"; no randomize), with the notes in a side panel | `t_designer_ms`, `t_designer_<tab>_ms` |
+| 7b | Likeness: "How much does this avatar look like [name]?" (1–7). At 4 or lower: a one-time offer to adjust the avatar, then the rating again | `t_designer_ms` |
+| 7c | Confirmation: "From here on, this avatar is [name]…" (button after 3 s) | `t_binding_ms` |
+| 7d | The unfamiliar person, generated from the final avatar: "This is Jordan. You haven't met Jordan before." (button after 3 s) | `t_binding_ms` |
+| 7e | Avatar–name matching: 24 trials, F / J | `t_matching_ms` |
 | 8 | Sound check: "window", then "garden" on a second attempt. Case and spaces ignored; one letter off accepted | `t_audio_check_ms` |
-| 9 | Scene instructions (surprise framing) | `t_fam_ms` |
-| 10 | Filler 1: "Get ready – The first scene starts in a moment" with a countdown, 15 s; the first scene then starts automatically. Then the 12 scenes | `t_filler1_ms` (countdown), `t_fam_ms` |
+| 9 | Scene instructions: "short moments from [name]'s and Jordan's days, as they run into people they know" (surprise framing) | `t_fam_ms` |
+| 10 | Filler 1: "Get ready – The first scene starts in a moment" with a countdown, 15 s; the first scene then starts automatically. Then the 12 scenes, with a person check-in after scenes 3, 6 and 9 | `t_filler1_ms` (countdown), `t_fam_ms`, `t_checkin_ms` |
+| 10b | "While watching the scenes, how much did the avatar feel like [name]?" (1–7) | (JSON `t_represent_ms`) |
 | 11 | Filler 2: arithmetic verification (Y/N), fixed 45 s (retention delay before the tests). Each problem has a 3 s deadline shown by a shrinking bar under it; a missed deadline shows "Too slow" and counts as an error | `t_filler2_ms` |
 | 12 | "Questions about the scenes" → Word (12) → Face (12) → Incidental (12), each block with a short intro | `t_test_ms` |
 | 13 | "Click Continue to answer a few final questions" (data written to Qualtrics here) | |
@@ -279,7 +300,8 @@ Inside the experiment block (Qualtrics handles consent, post-test, demographics 
 **Measured in debug runs** (placeholder audio, fillers shortened): one scene ≈ 7.6–8.6 s with an immediate keypress.
 The real-length experiment block is about 3 min setup + 3–5 min designer and likeness (v2) + 0.5 min sound check + 0.25 min countdown +
 2–4 min scenes + 1 min arithmetic (with instructions) + 3–4 min tests ≈ 12.75–17.75 min. With consent and post-test, about 17–20 min.
-**Confirm with the pilot.**
+v2.3 adds about 2 min 40 s: recall ~40 s, confirmation and introduction ~10 s, matching ~60 s, check-ins ~40 s, the
+post-scene rating ~10 s, and the revision for some participants. **Confirm with the pilot.**
 
 **Final-frame AOIs** (stage coordinates, 0–1, `[x0, y0, x1, y1]`; also stored in the JSON backup as `aoi_norm`):
 `stranger_face [0.12, 0.432, 0.29, 0.7456]`, `object [0.435, 0.6192, 0.565, 0.8272]`, `other_face [0.71, 0.432, 0.88, 0.7456]`, `incidental [0.788, 0.1344, 0.872, 0.2656]`.
@@ -292,6 +314,10 @@ The real-length experiment block is about 3 min setup + 3–5 min designer and l
   - set `SHOW_NAME_LABEL` in `config.js` (applies to everyone), or
   - give participants `name_label=1` / `name_label=0`, for example with separate Prolific study URLs ending in `&name_label=0`, or inside the existing Qualtrics Randomizer elements (set embedded field `name_label` alongside `category` and `list`). The field is already declared in the survey flow.
   Each participant's value is recorded as `name_label_shown` (1/0) and `name_label_source` (config / override, in the JSON backup).
+- **Binding steps and check-ins (optional factors, §19):** the config switches apply to everyone; `binding=0/1` and
+  `checkins=0/1` (URL or embedded data; both are declared in the survey flow) override them per participant, e.g. set inside
+  the Randomizer branches of a pilot copy of the survey. Recorded as `recall_enabled`, `revision_enabled`,
+  `matching_enabled`, `checkins_enabled` and `steps_source` (config / override).
 - **Between subjects:** `category` (3) × `list` (2) from the Qualtrics Randomizer (6 branches, evenly presented). If those fields are empty (piping failure), the experiment assigns them at random and records `assign_fallback = 1` in the JSON backup.
 - **Lists:** list A: scene sets s01–s06 = known, s07–s12 = unfamiliar. List B: swapped. Scene sets are matched in pairs (s01/s07, s02/s08, …) on gender presentation, apparent age and skin-tone band. So within each list, the 6 known and the 6 unfamiliar scenes each have 3 female-presenting and 3 male-presenting strangers, covering the same 6 skin tones and the same age spread (2 young, 2 middle-aged, 2 older).
 - **Per participant (seeded RNG; `seed` is recorded, so every assignment can be reconstructed):**
@@ -301,6 +327,9 @@ The real-length experiment block is about 3 min setup + 3–5 min designer and l
   - option positions
   - word-test foils
   - which features the unfamiliar avatar changes
+  - from a second random stream of the same seed (so these never shift the scene design): matching keys (`match_keymap`,
+    F = match or J = match, 50/50), matching trial order, check-in question order (`checkin_order`, one of the 3 rows of a
+    Latin square), and which person is asked first at each check-in (`checkin_k_first`)
 - **Word-test foils:** 3 foils from the other 11 scene sets, with **at least one from each condition** (hard rule).
   - **Soft rule (as you asked):** all 4 options have different first vowels.
   - Each object is also used as a foil exactly 3 times, so foil familiarity is balanced.
@@ -365,11 +394,73 @@ Designed and reviewed in `design/avatar_style_sheet.html` (shading levels, rules
   - Hair: texture (straight / wavy / curly / coily), length (short / medium / long), style within those, colour (continuous natural scale), grey (range depends on age)
   - Extras: head covering (none / hijab / turban, with colour), facial hair (5), glasses (3), freckles, shirt colour
   - Slider ranges cover ordinary adult variation only; no option is tied to skin tone or group.
+- **Hair styles** (16): buzz, bald / receding, short crop, side part, short curls, short coils, **bob**, bob with bangs,
+  shoulder length, curls / coils medium, afro, bun / puff, long, curls long, braids, locs (each offered only for the textures
+  and lengths it fits).
+- **Curly and coily hair (redrawn in v2.3 after feedback that the coily hair looked unnatural).** v2.2 drew these styles as a
+  flat shape edged with a ring of identical small circles, which read as a beaded sticker. Now:
+  - the outline is built from clustered curls at two scales (larger clumps with finer curls on them), each cluster a
+    different size, so the silhouette reads as hair (`curlEdge`, `clumpEdge`);
+  - inside the mass, overlapping curl clusters each get a shadow crescent below and, on most, a highlight above, giving the
+    bumpy volume of real curls; coily hair has smaller, denser clusters plus fine coils, curly hair larger ringlet clusters
+    (`hairTexture`);
+  - shapes were reworked: the afro and puff are slightly uneven rounds (`lumpy`) shaded toward the bottom; medium curls / coils
+    are fullest at the temples; hairlines are soft and slightly uneven; a textured full beard gets the same edge and texture.
+  - Affects short coils, short curls, curls / coils medium, afro, puff (curly / coily bun), curls long and textured full
+    beards, at every size (locs and braids: next item). Everything is seeded, so a given avatar always looks the same.
+- **Bob (redrawn in v2.3 after feedback that it was small and cartoonish):** fuller and longer (to the chin, full at the
+  sides, rounded crown), with the ends curving in toward the jaw instead of a flat edge; strands, a sheen across the crown, and
+  a soft, uneven fringe with separations. A **bob without bangs** (side part, hair swept across the forehead) was added. Both
+  come in straight and wavy.
+- **Locs and braids (redrawn in v2.3):** v2.2 drew them as thin, even tubes at the sides of a flat cap with lines on it and
+  a flat dark block behind. Now each loc or braid is its own rope with an outline, a highlight on the lit side and a slight
+  tone variation: locs thick and uneven in width with knobbly texture and small coils; braids even, with a plait pattern
+  and parted sections at the part. From a centre part they cover the scalp, frame the face, hang densely behind the neck
+  and shoulders (ends hidden behind the body) and fall in front of the shoulders: locs to the shoulders, braids to the chest.
+  A full hair volume in a deeper shade of the hair colour sits behind the ropes, so the hair reads as full rather than as
+  separate strands with gaps. Under 9 ms to draw (the designer redraws on every change); about 210 KB (locs) and 260 KB
+  (braids) of SVG per figure.
+- **Every other style (redrawn in v2.3, after a check of the styles not yet changed):**
+  - **Buzz:** close-cropped with skin showing through, a fine grain that matches the hair type (a stipple for curly and
+    coily hair, short strokes for straight and wavy) and a soft hairline. A coily and a straight buzz now look different.
+  - **Bald / receding:** a tapered fringe on the temples and a rim of hair behind the ears (the ears stay in front of it),
+    instead of two flat patches; a soft sheen on the scalp.
+  - **Short crop and side part:** short strands growing from the crown (crop) or combed away from the part (side part),
+    and soft hairlines; the side part's fringe ends in soft tips instead of a hard diagonal cut.
+  - **Shoulder length and long:** the ends finish in soft, uneven tips with rounded corners (no square-cut shelf), strands
+    follow the hair down from the crown, and there is sheen down each side.
+  - **Facial hair:** stubble is a light tint with a fine stipple and a broken edge; short and full beards on straight / wavy
+    hair have hair strokes growing down and a softly broken edge; the mustache has strokes growing out from the centre.
+    (`grain` in `js/people.js`.)
+  - **Hijab:** a folded edge framing the face, fabric gathering under the chin with a soft shadow, folds falling from the
+    sides of the head over the shoulders, and a slightly narrower drape. Its drape hangs under gravity in the look at the
+    object, like long hair (24 fade steps, because it is wide).
+  - **Turban:** layered wraps rising from the sides and meeting at the front in V-shaped pleats, each with a shadowed fold
+    and a lit edge.
+  - Now every stranger and foil is drawn at the same level of detail. Draw time is under 10 ms for every style; the
+    largest drawings are braids and locs (about 270 and 220 KB of SVG).
+- **Straight / wavy bun (redrawn in v2.3; it was a flat circle on a plain cap):** a fuller, slightly flattened bun with wrap
+  lines spiralling round it, shading underneath and a highlight, a band where it meets the head, and the hair combed back
+  with strands that sweep up from a softly uneven hairline and fade over the crown (gently waving for wavy hair).
+- **Hair in motion (v2.3):** in the scenes the head tilts toward the object (about 9°) and drops slightly. Before v2.3 all
+  hair turned with the head as one rigid piece, so long hair, locs and braids swung their ends sideways, and the strands in
+  front of the shoulders didn't move at all. Now short and rounded styles still move rigidly, but hair that hangs below the
+  jaw (shoulder length, long, long curls, locs, braids, and slightly the bobs and medium curls) is drawn in horizontal bands
+  (`HANG`, `hangBands`, `hairLayer` in `js/people.js`): above the jaw it turns with the head; the turn then fades out over 12
+  steps, so the ends hang straight down and only move along with the head (sideways shift and drop). The strands in front of
+  the shoulders follow the same rule. `tools/hair_motion.html` loops every style through the scenes' own look at the partner
+  and at the object, as the stranger and as the known / unfamiliar person.
+- **Review page:** `tools/hair_review.html` shows every changed style old (v2.2, from `tools/legacy/people_v2.2.js`) beside
+  new, across five skin-tone / hair-colour combinations, at designer and scene size. **These drawings still need sign-off
+  from people who wear these styles before launch (§16).**
+- **Strangers affected:** all 12 strangers and their foils (their IDs and feature vectors are unchanged; only the drawing
+  changed). The SVG exports in
+  `stimuli/svg/` were regenerated. Face-test difficulty could shift slightly: check it in the pilot.
 - **Shirt palettes:** the designer's shirt colours and the stranger shirt colours are disjoint palettes.
 - **Unfamiliar person** (`js/avatar_rules.js`, seeded by the participant `seed`):
   - **Copies** skin lightness and undertone, age and grey, lid type, iris colour, freckles, hair texture and length, head covering, facial hair present / absent.
   - **Moves** `AVATAR_UNFAM_K` = 4 random identity sliders (face width, jaw, eye size / tilt / spacing, nose width / length, lip fullness, mouth width, brow thickness / shape) by ±`AVATAR_UNFAM_STEP` = 0.35, flipping direction at a bound.
-  - **3 categorical changes**, each visible at scene size: a hair style from the similar-style list (same length and texture; long straight / wavy hair may go to shoulder length), a different shirt colour (always), and either a hair-colour change of 1–2 steps on the natural scale (black – dark brown – brown – light brown – blonde, auburn next to brown; never when grey would hide it) or glasses added / removed.
+  - **3 categorical changes**, each visible at scene size: a hair style from the similar-style list (same length and texture; long straight / wavy hair may go to shoulder length; bob, bob with bangs and shoulder length are similar to each other), a different shirt colour (always), and either a hair-colour change of 1–2 steps on the natural scale (black – dark brown – brown – light brown – blonde, auburn next to brown; never when grey would hide it) or glasses added / removed.
   - Special cases: head covering → covering colour + shirt + glasses; bald with facial hair → facial-hair style (stays present) + shirt + glasses; bald without facial hair → shirt + glasses + a 5th identity slider.
 - **Strangers and foils:** 12 strangers (`stimuli.json`) keep the IDs, gender presentation, ages and skin-tone bands of v1, so the matched pairs, list balancing and recorded voices are unchanged. They span all three lid types and all four hair textures; none wears a head covering.
   - Each foil keeps its stranger's group features, clothing and glasses, moves `FOIL_K` = 4 identity sliders by `FOIL_STEP` = 0.35, and makes one hand-picked hair change (`foil_change`): a similar style or a one-step colour change.
@@ -475,7 +566,9 @@ python analysis/reshape_qualtrics.py export.csv -o long.csv
 | `relationship_type` | Friend / Parent / Sibling / Grandparent / Other relative / Coworker or classmate / Neighbor / Other |
 | `is_kin` | 1 if Parent, Sibling, Grandparent or Other relative |
 | `ios` | 1–7 (Inclusion of Other in the Self) |
-| `contact_freq` | Daily … Less than once a month (text) |
+| `contact_inperson`, `contact_remote` | 1–7: how often they see the person in person / talk in other ways (7 = every day or almost, 6 = a few times a week, 5 = about once a week, 4 = a few times a month, 3 = about once a month, 2 = a few times a year, 1 = less than once a year) |
+| `contact_max` | the higher of the two |
+| `contact_freq` | before v2.3 only: the single question (text) |
 | `duration` | Less than 1 year … More than 10 years (text) |
 | `name_length` | characters in the typed name (the name itself is never stored) |
 | `name_flagged_title` | 1 if the first entry matched a family title (e.g. "Mom") |
@@ -483,7 +576,20 @@ python analysis/reshape_qualtrics.py export.csv -o long.csv
 | `known_avatar`, `unfamiliar_avatar` | feature vectors `key=value;…` in the order of `FEATURE_KEYS` (js/people.js); sliders 0–1 to 2 decimals. `reshape_qualtrics.py` unpacks them into `known_<key>` / `unfam_<key>` columns |
 | `unfam_changes` | the unfamiliar person's categorical changes, `feature:from>to`, `|`-separated |
 | `unfam_k`, `unfam_identity_dist` | identity sliders moved (4, or 5 when bald without facial hair) and their Euclidean distance |
-| `likeness_rating`, `likeness_rt_ms` | "How much does this avatar look like [name]?" 1–7, and response time |
+| `likeness_rating`, `likeness_rt_ms` | "How much does this avatar look like [name]?" 1–7: the **final** rating (after any revision), and the first rating's response time |
+| `likeness_1`, `likeness_2` | first rating; rating after the revision (blank if not revised) |
+| `revision_offered`, `revised` | 1 if the revision was offered (first rating ≤ 4) / taken; blank when `REVISION_ENABLED` is off |
+| `designer_ms_2`, `designer_edits_2` | time and edits in the revision visit |
+| `recall_ms`, `recall_chars_1..3` | time on the two recall screens; characters typed in each note (the notes themselves are never stored) |
+| `confirm_ms`, `jordan_intro_ms` | time on the confirmation screen and on the unfamiliar person's introduction |
+| `match_keymap` | `F=match` or `J=match` |
+| `match_acc_<type>`, `match_rt_med_<type>` | matching accuracy (timeouts count as errors) and median RT on correct trials, for `kk` (known avatar + known name), `uu`, `ku` (known avatar + Jordan), `uk` |
+| `match_acc_total`, `match_n_timeout`, `match_flag` | overall accuracy; trials with no response within 2.5 s; 1 if accuracy < 0.75 (flag only) |
+| `checkin_order` | the 3 questions in order, e.g. `feel>evening>dayoff` |
+| `checkin_k_qid`, `checkin_k_first`, `checkin_k_after_trial` | check-in k = 1–3: question (`feel` / `evening` / `dayoff`), who was asked first (known / unfamiliar), the scene it followed |
+| `checkin_k_known_resp`, `checkin_k_known_rt_ms`, `checkin_k_unf_resp`, `checkin_k_unf_rt_ms` | the option chosen (text) and response time, for each person |
+| `represent_rating`, `represent_rt_ms` | "While watching the scenes, how much did the avatar feel like [name]?" 1–7 |
+| `recall_enabled`, `revision_enabled`, `matching_enabled`, `checkins_enabled`, `steps_source` | which optional steps ran (1/0) and whether that came from config or a `binding` / `checkins` override |
 | `designer_edits`, `designer_resets`, `designer_tabs_visited` | designer edits (a released slider or a clicked option), section resets, sections opened (of 6) |
 | `designer_edits_<tab>`, `t_designer_<tab>_ms` | per section: skin, face, eyes, nosemouth, hair, extras |
 | `unfamiliar_name` | name shown under the unfamiliar person |
@@ -501,7 +607,7 @@ python analysis/reshape_qualtrics.py export.csv -o long.csv
 | `reload_pre_fam` | reloads before familiarization (participant restarted the block) |
 | `reloaded_post_fam` | 1 if reloaded during or after familiarization → **exclude** |
 | `reload_stage` | stage at that reload (fam / post_fam / test / done) |
-| `t_intro_ms` … `t_test_ms` | time per section (§7 table) |
+| `t_intro_ms` … `t_test_ms` | time per section (§7 table): intro, setup, recall, designer, binding, matching, audio_check, filler1, fam, checkin, filler2, test |
 | `js_start_epoch_ms`, `js_end_epoch_ms` | Unix ms at the start and end of the JS block |
 | `design_version` | `unique12` / `repeat6` |
 | `design_version_source` | `qsf` (the survey passed it), `url` (local run) or `config_fallback` (nothing passed: check that survey) |
@@ -570,13 +676,29 @@ These are recorded, not enforced: the preregistered rules decide.
 - **Audio:** `audio_check_pass`, `audio_load_errors`, `audio_simulated_scenes`.
 - **Reloads:** `reloaded_post_fam` → exclude; `reload_pre_fam` → keep, but note it.
 - **Manipulation check:** IOS by `category`.
+- **Binding (v2.3):** `match_flag` (matching accuracy < 75%), `likeness_rating`, `represent_rating`. Flags only.
 
 ## 15. Privacy
 
 - **The typed name never leaves the browser.** It lives only in memory and is shown on screen.
   - It is not in any data field, the JSON backup, DataPipe, localStorage or the jsPsych data.
   - The name input has no `name` attribute, so the Qualtrics form can't submit it.
-  - Debug runs were checked: the name appears nowhere in the output files.
+- **The recall notes (v2.3) never leave the browser either**, as the screen promises ("These notes stay in your browser, help
+  you build the avatar, and are never saved or sent anywhere"):
+  - They are held in one variable (`S.notes`) while the participant builds the avatar, shown in the designer's side panel,
+    and set to `null` as soon as the last designer visit is over (after the revision, if one was taken).
+  - Only their lengths are recorded (`recall_chars_1..3`). Nothing writes them to embedded data, the JSON backup, DataPipe,
+    the jsPsych data or localStorage.
+  - The text boxes have `spellcheck="false"` (some browsers' enhanced spell check sends typed text to a server) and
+    `autocomplete="off"`, and are emptied when the page moves on. A reload during setup starts setup again, so the notes
+    are simply gone.
+- **Test: `tools/privacy_check.html`** (through the dev server; `?design=repeat6` or `unique12`, `&prototype=1`). It runs one
+  full automatic session of the real code in Qualtrics mode, with a stand-in for `Qualtrics.SurveyEngine` that records every
+  embedded-data value. The autopilot types a random made-up name and random made-up notes. The page then searches, for the
+  name, each whole note and the random words in it: every embedded-data field name and value (including `full_data_json`),
+  the full JSON backup (what DataPipe sends), the jsPsych trial data, localStorage, sessionStorage, cookies, every network
+  request made during the run, and the page DOM; and checks that the notes are gone from the experiment's memory. It must
+  find nothing. Result on 2026-11-18, both versions with Prototype.js: passed (details in §19).
 - **No photo uploads.** The person is represented only by the designer avatar.
 - **localStorage** holds only `{stage, reload_pre_fam}` under a key built from PROLIFIC_PID + STUDY_ID.
 - **External calls:** no third-party analytics. The only external requests are to GitHub Pages (code and audio) and, if enabled, DataPipe.
@@ -589,7 +711,8 @@ These are recorded, not enforced: the preregistered rules decide.
 - [ ] **DataPipe** experiment ID + OSF component (§11).
 - [ ] Confirm **custom JavaScript** is enabled on Harvard's Qualtrics (§4.1).
 - [ ] **Approve the ElevenLabs audio**: listen to every clip in `tools/audio_review.html`, especially the 12 novel words from both stranger and narrator (§10.1).
-- [ ] **Avatar review**: as suggested in the style sheet, have a few people from the communities represented look at the designer (`tools/designer_preview.html`) and the strangers (`tools/stimulus_sheet.html`) before launch.
+- [ ] **Avatar review**: as suggested in the style sheet, have a few people from the communities represented look at the designer (`tools/designer_preview.html`) and the strangers (`tools/stimulus_sheet.html`) before launch. In particular, sign off on every redrawn hair style, the facial hair, and the hijab and turban in `tools/hair_review.html` (old vs. new); the hijab and turban are best reviewed by people who wear them.
+- [ ] **Consent text**: keep the sentence about the typed name and notes ("…The name and notes are not saved.") in the IRB version.
 - [ ] **Payment**, after the pilot measures the median duration.
 - [ ] **Pilot (~20 participants)**: check that face and word accuracy fall around 65–75% and incidental accuracy is above 25% but not near ceiling. Tuning knobs:
   - foil similarity (`FOIL_STEP` in config.js → `tools/make_foils.html` → redeploy)
@@ -705,3 +828,79 @@ last two trials known→unfamiliar 491, unfamiliar→known 509; lags 2–11.
 
 Familiarization is still 12 scenes; the tests drop from 36 to 18 trials (about 1.5–2 min less), so the consent page says
 about **17 minutes** (`ESTIMATED_MINUTES_REPEAT6`). Confirm with the pilot.
+
+## 19. Linking the avatar to the person, and check-ins (v2.3)
+
+Both versions. Specs: `PERSON_BINDING_SETUP.md` and `PERSON_CHECKINS.md` (copied into the repo; the defaults agreed on
+2026-11-18 are the ones described here). The aim is that participants treat the avatar as
+the real person they know before and during the scenes. **Everything the known avatar gets, the unfamiliar avatar gets too**
+(screen time, training trials, name pairing, check-in questions), with the same layout and size. Nothing in these steps
+mentions the scenes, objects, words or tests.
+
+### 19.1 Setup order
+
+name → relationship → IOS → **contact (two questions)** → duration → **recall prompts** → designer **with the notes beside it** →
+likeness → **one-time revision** (if the rating is 4 or lower) → **confirmation** → **"This is Jordan"** → **avatar–name
+matching** → sound check → scene instructions (**new framing**) → countdown → 12 scenes with **check-ins after 3, 6, 9** →
+**"how much did the avatar feel like [name]?"** → arithmetic → tests.
+
+- **Contact:** "How often do you see [name] in person?" and "How often do you talk with [name] in other ways (texting,
+  messaging, phone or video calls)?" (with the note that only direct messages and calls count, group chats included, not
+  seeing their posts). Same 7 options; `contact_inperson`, `contact_remote` (1–7), `contact_max`.
+- **Recall:** screen 1, "Take a moment to picture the last time you saw [name]…", Continue enabled after 8 s. Screen 2, three
+  boxes of up to 150 characters (where you were; what they were doing or wearing; their face when they smile or laugh); at
+  least one must have text. The notes appear in the designer under the preview, titled "Your notes (not saved)". Privacy: §15.
+- **Revision:** "Would you like to adjust the avatar? You can make changes once." Adjust reopens the designer with the current
+  avatar, then asks the likeness rating again. `likeness_rating` is the final rating.
+- **Confirmation and introduction:** the avatar large and centred with the name beneath; the button appears after 3 s. The
+  unfamiliar person is generated from the final avatar (after any revision) and shown at the same size and position.
+- **Matching** (after Sui, He & Humphreys, 2012): "Press F if the name matches the person and J if it doesn't" (or the
+  reverse, `match_keymap`, 50/50). 6 trials each of known avatar + known name, Jordan + Jordan, known avatar + Jordan, Jordan
+  + known name, in random order with no more than 3 of one type and no more than 4 of one correct answer in a row. Each trial:
+  fixation 500 ms → avatar and name until response (max 2.5 s) → "Correct" / "Incorrect" / "Too slow" 400 ms → 300 ms blank.
+  A key reminder stays at the bottom. Trial data (labels only: `known` / `unfamiliar` for the avatar and the name) are in the
+  JSON backup under `match`; summaries are participant fields. `match_flag` never excludes anyone.
+- **Scene instructions:** "Next you'll watch short moments from [name]'s and Jordan's days, as they run into people they know.
+  Imagine you're really watching [name] and Jordan." (repeat6 adds "Scenes may be shown more than once."; with check-ins on:
+  "Every few scenes, we'll ask a quick question about [name] and about Jordan. There are no right answers.") This replaces the
+  earlier "people meeting each other" / "someone you haven't seen before" wording. The name text stays under both people in
+  every scene (`SHOW_NAME_LABEL`).
+
+### 19.2 Check-ins
+
+After familiarization trials 3, 6 and 9 (never after 12), once SPACE has ended the scene, so `view_ms` is unaffected. Each
+check-in asks one question about both people, one screen each, in random order; each screen shows that person's avatar
+(same size and position) with their name. Header: "Quick question. Your best guess is fine." Self-paced; clicking an
+option moves on. 300 ms blank between the two screens, 500 ms blank before the next scene.
+
+| id | Question | Options |
+|---|---|---|
+| `feel` | How do you think [name] is feeling these days? | Not great / Okay / Good / Great / Not sure |
+| `evening` | Would [name] rather spend a free evening at home or out somewhere? | At home / Out somewhere / Not sure |
+| `dayoff` | With a day off tomorrow, would [name] plan it or play it by ear? | Plan it / Play it by ear / Not sure |
+
+Each question is used once per participant; the order is one of the 3 rows of a Latin square (`checkin_order`). Checked
+against every tested item (`tools/privacy_check.html`, "Check-in wording"): none of the three mentions a novel word, an
+incidental object of either version (mug, lamp, clock, bowl, frame, watering can, vase, book, teapot, candle, jar, bottle),
+a colour, objects, meeting people, learning, memory or tests. Data: `checkin_k_*` fields (§13), the JSON backup
+(`checkins`, one record per response), and the long format (`phase = checkin`, one row per response).
+
+### 19.3 Switches
+
+`RECALL_ENABLED`, `REVISION_ENABLED`, `MATCHING_ENABLED`, `CHECKINS_ENABLED` (all `true`). A switched-off step is skipped and
+its fields stay blank. `binding=0/1` (recall, revision and matching together) and `checkins=0/1` override them for one
+participant, so a pilot can compare versions on `represent_rating` and the likeness rating within one deployment. The
+confirmation, introduction and post-scene rating always run.
+
+### 19.4 Checks run (2026-11-18)
+
+- Full automatic runs of both versions with Prototype.js (`prototype=1`): every new field filled; the revision path taken
+  (the autopilot rates 4 first); 24 matching trials; 3 check-ins after scenes 3, 6, 9; JSON backup about 31,000 characters
+  for unique12 and 23,000 for repeat6 (limit 60,000, not truncated). A repeat6 run with `binding=0&checkins=0` left every
+  recall, revision, matching and check-in field blank (`steps_source = override`).
+- The reshape script reads the new samples (check-in rows included) and still reads the 2026-11-18 repeat6 pilot export
+  (v2.2, `contact_freq`, no binding fields).
+- `tools/check_repeat6.html` (400 designs, Prototype.js) and the foil rules of both stimulus files still pass after the
+  similar-style list gained the plain bob.
+- `tools/privacy_check.html`, both versions: the name and notes were found nowhere (embedded data, JSON backup, jsPsych data,
+  storage, cookies, network requests, DOM), and the notes were gone from memory.

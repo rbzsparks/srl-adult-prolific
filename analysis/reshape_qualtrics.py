@@ -18,6 +18,11 @@ before v2.2):
     test rows:            one per test trial (36 for unique12, 18 for repeat6); serial_position = the scene set's
                           first showing, serial_position_2 = its second showing (repeat6), lag = their distance
 
+Person check-ins (v2.3): phase = checkin, one row per response (6 per participant): trial_index = check-in 1-3,
+serial_position = the familiarization trial it followed, condition = the person asked about (known / unfamiliar),
+checkin_qid, checkin_order_in_pair (1 = asked first), checkin_response (option text), rt_ms.
+The matching-task trials are only in full_data_json ("match"); their summaries are participant columns.
+
 Usage:
     python analysis/reshape_qualtrics.py qualtrics_export.csv -o long.csv [--include-incomplete] [--include-debug]
 """
@@ -87,11 +92,20 @@ def read_export(path):
     return recs
 
 
+# Person-binding steps (v2.3; blank for older data or when a step was switched off).
+BINDING_COLS = ['recall_enabled', 'revision_enabled', 'matching_enabled', 'checkins_enabled', 'steps_source',
+                'recall_ms', 'recall_chars_1', 'recall_chars_2', 'recall_chars_3',
+                'likeness_1', 'revision_offered', 'revised', 'likeness_2', 'designer_ms_2', 'confirm_ms', 'jordan_intro_ms',
+                'match_keymap', 'match_acc_kk', 'match_acc_uu', 'match_acc_ku', 'match_acc_uk',
+                'match_rt_med_kk', 'match_rt_med_uu', 'match_rt_med_ku', 'match_rt_med_uk', 'match_acc_total', 'match_flag',
+                'checkin_order', 'represent_rating']
 LONG_COLS = [
     # participant level
     'prolific_pid', 'study_id', 'session_id', 'response_id', 'design_version', 'design_version_source', 'stranger_set', 'category', 'list', 'test_block_order', 'surprise_test', 'name_label_shown', 'mouseview_on',
-    'relationship_type', 'is_kin', 'ios', 'contact_freq', 'duration', 'name_length', 'name_flagged_title', 'name_suspect',
+    'relationship_type', 'is_kin', 'ios', 'contact_inperson', 'contact_remote', 'contact_max', 'contact_freq', 'duration',
+    'name_length', 'name_flagged_title', 'name_suspect',
     'known_avatar', 'unfamiliar_avatar', 'unfam_changes', 'unfam_k', 'unfam_identity_dist', 'unfamiliar_name',
+] + BINDING_COLS + [
     'likeness_rating', 'likeness_rt_ms', 'designer_edits', 'designer_resets', 'designer_tabs_visited', 't_designer_ms', 'audio_check_pass',
     'filler2_accuracy', 'filler2_n_attempted', 'filler2_n_timeout', 'filler2_low_engagement', 'fam_fast_advance_count', 'fam_timeout_count',
     'fullscreen_exits', 'tab_switches', 'reload_pre_fam', 'reloaded_post_fam', 'browser', 'screen_w', 'screen_h', 'total_ms',
@@ -100,15 +114,17 @@ LONG_COLS = [
     'phase', 'trial_index', 'serial_position', 'presentation', 'lag', 'serial_position_2', 'scene_set_id', 'condition', 'stranger_id', 'word', 'incidental_type', 'incidental_color',
     'viewing_time_ms', 'timed_out', 'label_audio_ms',
     'test_type', 'target_id', 'foil_ids', 'target_position', 'response_id_choice', 'correct', 'rt_ms',
+    'checkin_qid', 'checkin_order_in_pair', 'checkin_response',
     'k', 'f'
 ] + FEATURE_COLS
 PCOLS_FROM_ED = ['design_version', 'design_version_source', 'stranger_set', 'category', 'list', 'test_block_order', 'surprise_test', 'name_label_shown', 'mouseview_on', 'relationship_type', 'is_kin', 'ios',
-                 'contact_freq', 'duration', 'name_length', 'name_flagged_title', 'name_suspect', 'known_avatar', 'unfamiliar_avatar',
+                 'contact_inperson', 'contact_remote', 'contact_max', 'contact_freq', 'duration', 'name_length', 'name_flagged_title',
+                 'name_suspect', 'known_avatar', 'unfamiliar_avatar',
                  'unfam_changes', 'unfam_k', 'unfam_identity_dist', 'unfamiliar_name', 'likeness_rating', 'likeness_rt_ms',
                  'designer_edits', 'designer_resets', 'designer_tabs_visited', 't_designer_ms', 'audio_check_pass', 'filler2_accuracy',
                  'filler2_n_attempted', 'filler2_n_timeout', 'filler2_low_engagement',
                  'fam_fast_advance_count', 'fam_timeout_count', 'fullscreen_exits', 'tab_switches', 'reload_pre_fam',
-                 'reloaded_post_fam', 'browser', 'screen_w', 'screen_h', 'total_ms']
+                 'reloaded_post_fam', 'browser', 'screen_w', 'screen_h', 'total_ms'] + BINDING_COLS
 NATIVE = {'prolific_pid': 'PROLIFIC_PID', 'study_id': 'STUDY_ID', 'session_id': 'SESSION_ID', 'response_id': 'ResponseId',
           'expected_test': 'expected_test', 'strategy': 'strategy', 'attention_check_1': 'attention_check_1',
           'attention_check_2': 'attention_check_2', 'age': 'age', 'gender': 'gender'}
@@ -175,6 +191,16 @@ def reshape(recs, F0, include_incomplete=False, include_debug=False):
                                   foil_ids=d[p + 'foils'], target_position=d[p + 'position'], response_id_choice=d[p + 'choice'],
                                   correct=d[p + 'correct'], rt_ms=d[p + 'rt_ms'], k=k, f='incidental' if t == 'incid' else 'target'))
         out.extend(tests)
+        # Person check-ins (v2.3): one row per response; condition = the person asked about.
+        for kk in range(1, 4):
+            p = f'checkin_{kk}_'
+            if not d.get(p + 'qid'):
+                continue
+            first = d.get(p + 'first', '')
+            for person, short in (('known', 'known'), ('unfamiliar', 'unf')):
+                out.append(dict(base, phase='checkin', trial_index=kk, serial_position=d.get(p + 'after_trial', ''), condition=person,
+                                checkin_qid=d[p + 'qid'], checkin_order_in_pair=1 if first == person else 2,
+                                checkin_response=d.get(p + short + '_resp', ''), rt_ms=d.get(p + short + '_rt_ms', '')))
         # Cross-check against the JSON backup; also fills the word-test target object id.
         js = ''.join(d.get(f"{F['json_prefix']}{i}", '') for i in range(1, F['json_chunks'] + 1))
         if js:

@@ -2,3 +2,4 @@ audio_src/
 __pycache__/
 *.pyc
 .claude/
+data/

@@ -32,17 +32,25 @@ SRL.designer = (function () {
   };
   const PREFERRED_STYLE = ['crop', 'shoulder', 'long', 'curly_short', 'coils_short', 'curly_mid', 'curly_long', 'braids'];
 
-  async function run(el, S) {
-    const spec = Object.assign({}, P.NEUTRAL);
+  /* opts.start: spec to start from (the revision visit starts from the current avatar; default the neutral face).
+   * opts.revision: true on the one-time revision visit. The recall notes (S.notes, memory only) are shown in a side
+   * panel under the preview when there are any. */
+  async function run(el, S, opts) {
+    opts = opts || {};
+    const spec = Object.assign({}, opts.start || P.NEUTRAL);
     const stats = { edits: 0, resets: 0, tabMs: {}, tabEdits: {}, visited: new Set() };
     TABS.forEach((t) => { stats.tabMs[t.id] = 0; stats.tabEdits[t.id] = 0; });
     let tab = 0, tabT0 = U.now();
     const t0 = U.now();
+    const notes = SRL.binding ? SRL.binding.notesPanel(S) : '';
+    const pw = notes ? 230 : 290, ph = Math.round(pw * 1.2);
     el.innerHTML = `<div class="srl-page srl-designer">
-      <h1>Make an avatar that looks like ${esc(S.knownName)}</h1>
-      <p class="dz-intro">Go through the six sections and adjust each one until the avatar looks as much like ${esc(S.knownName)} as you can make it. You can go back to any section.</p>
+      <h1>${opts.revision ? 'Adjust the avatar of ' : 'Make an avatar that looks like '}${esc(S.knownName)}</h1>
+      <p class="dz-intro">${opts.revision
+        ? `Change anything you like, in any section, then click <b>Done</b> in the last section.`
+        : `Go through the six sections and adjust each one until the avatar looks as much like ${esc(S.knownName)} as you can make it. You can go back to any section.`}</p>
       <div class="dz-wrap">
-        <div class="dz-preview"></div>
+        <div class="dz-side"><div class="dz-preview" style="width:${pw}px;height:${ph}px"></div>${notes}</div>
         <div class="dz-main">
           <div class="dz-tabs" role="tablist">${TABS.map((t, i) => `<button type="button" class="dz-tab" data-t="${i}" role="tab">${i + 1}. ${t.label}</button>`).join('')}</div>
           <div class="dz-panel"></div>
@@ -57,7 +65,7 @@ SRL.designer = (function () {
     const preview = el.querySelector('.dz-preview'), panel = el.querySelector('.dz-panel');
     const btnNext = el.querySelector('#dz-next'), btnBack = el.querySelector('#dz-back');
 
-    const drawPreview = () => { preview.innerHTML = P.svg(spec, { attrs: 'width="290" height="348"', label: 'avatar preview' }); };
+    const drawPreview = () => { preview.innerHTML = P.svg(spec, { attrs: `width="${pw}" height="${ph}"`, label: 'avatar preview' }); };
     const edited = () => { stats.edits++; stats.tabEdits[TABS[tab].id]++; };
     const stylesNow = () => P.stylesFor(spec.texture, spec.length);
     function fixStyle() {
@@ -151,7 +159,16 @@ SRL.designer = (function () {
 
     await new Promise((resolve) => {
       btnNext.onclick = () => { if (tab < TABS.length - 1) switchTab(tab + 1); else resolve(); };
-      if (S.auto) {
+      if (S.auto && opts.revision) {
+        // Autopilot (revision visit): one change, then through to Done.
+        const tick = () => {
+          if (tab === 4) { spec.hairColor = 0.15; edited(); drawPreview(); }
+          const last = tab === TABS.length - 1;
+          btnNext.click();
+          if (!last) setTimeout(tick, 60);
+        };
+        setTimeout(tick, 150);
+      } else if (S.auto) {
         // Autopilot: one change in each section, then Done.
         const steps = [() => { spec.skinL = 0.3; spec.skinU = 0.6; }, () => { spec.faceW = 0.6; spec.age = 'young'; }, () => { spec.lid = 'mono'; spec.eyeSize = 0.4; },
           () => { spec.lipFull = 0.6; }, () => { spec.texture = 'straight'; spec.length = 'medium'; spec.hairStyle = 'bangs'; spec.hairColor = 0; }, () => { spec.glasses = 'round'; }];
@@ -181,7 +198,8 @@ SRL.designer = (function () {
     el.querySelectorAll('.dz-like-btn').forEach((b) => (b.onclick = () => {
       val = +b.dataset.k; el.querySelectorAll('.dz-like-btn').forEach((x) => x.classList.toggle('sel', x === b)); el.querySelector('#go').disabled = false;
     }));
-    if (S.auto) setTimeout(() => { el.querySelector('[data-k="5"]').click(); el.querySelector('#go').click(); }, 150);
+    // Autopilot: 4 the first time (so the revision offer is exercised), 6 after a revision.
+    if (S.auto) setTimeout(() => { el.querySelector(`[data-k="${S.p.revised ? 6 : 4}"]`).click(); el.querySelector('#go').click(); }, 150);
     await SRL.ui.onClick(el.querySelector('#go'));
     return { likeness_rating: val, likeness_rt_ms: Math.round(U.now() - t0) };
   }

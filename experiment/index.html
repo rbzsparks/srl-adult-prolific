@@ -20,13 +20,15 @@
     devsave=1  (with tools/dev_server.py) write the output files into sample_data/ instead of downloading
     reset=1    clear the reload marker for this PROLIFIC_PID before starting
     name_label=0|1  hide / show the name text beneath the person in scenes (overrides config SHOW_NAME_LABEL)
+    binding=0|1     turn the recall, revision and matching steps off / on (overrides the config switches)
+    checkins=0|1    turn the person check-ins during the scenes off / on (overrides CHECKINS_ENABLED)
     prototype=1     load Prototype.js 1.7.1 first, as Qualtrics' classic layouts do (it replaces Array.from, map, find, ...)
 -->
 <script src="js/loader.js"></script>
 <script>
   const q = new URLSearchParams(location.search);
   const params = {};
-  ['PROLIFIC_PID', 'STUDY_ID', 'SESSION_ID', 'category', 'list', 'design_version', 'stranger_set', 'debug', 'auto', 'devsave', 'reset', 'name_label'].forEach((k) => { if (q.has(k)) params[k] = q.get(k); });
+  ['PROLIFIC_PID', 'STUDY_ID', 'SESSION_ID', 'category', 'list', 'design_version', 'stranger_set', 'debug', 'auto', 'devsave', 'reset', 'name_label', 'binding', 'checkins'].forEach((k) => { if (q.has(k)) params[k] = q.get(k); });
   const start = () => window.SRL_LOAD({
     base: './', mode: 'local', params, version: String(Date.now()),
     finish: () => { document.body.innerHTML = '<p style="padding:24px">Finished. (In Qualtrics, the survey would now advance to the post-test questions.)</p>'; },

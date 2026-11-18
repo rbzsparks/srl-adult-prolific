@@ -32,7 +32,7 @@ SRL.avatarRules = (function () {
 
   /* Similar-outline styles. Never to or from bald. */
   const SIMILAR = { buzz: ['crop', 'coils_short', 'curly_short'], crop: ['sidepart', 'buzz'], sidepart: ['crop'], curly_short: ['coils_short', 'buzz'], coils_short: ['curly_short', 'buzz'],
-    bangs: ['shoulder'], shoulder: ['bangs', 'long'], long: ['shoulder'], curly_mid: ['afro', 'curly_long'], afro: ['curly_mid'], curly_long: ['curly_mid'], braids: ['locs'], locs: ['braids'], bun: [] };
+    bangs: ['shoulder', 'bob'], bob: ['bangs', 'shoulder'], shoulder: ['bangs', 'bob', 'long'], long: ['shoulder'], curly_mid: ['afro', 'curly_long'], afro: ['curly_mid'], curly_long: ['curly_mid'], braids: ['locs'], locs: ['braids'], bun: [] };
   const FACIAL_SWAP = { stubble: 'beard', mustache: 'beard', beard: 'mustache', fullbeard: 'mustache' };
   const fitsTex = (p, s) => s !== 'bald' && P.STYLES[s].tex.includes(p.texture);
   const fits = (p, s) => fitsTex(p, s) && P.STYLES[s].len.includes(p.length);

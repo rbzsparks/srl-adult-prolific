@@ -74,7 +74,7 @@ EXPERIMENT_JS = r"""Qualtrics.SurveyEngine.addOnload(function () {
   var VERSION = '__VERSION__';
   var params = {
     PROLIFIC_PID: "${e://Field/PROLIFIC_PID}", STUDY_ID: "${e://Field/STUDY_ID}", SESSION_ID: "${e://Field/SESSION_ID}",
-    category: "${e://Field/category}", list: "${e://Field/list}", design_version: "${e://Field/design_version}", stranger_set: "${e://Field/stranger_set}", debug: "${e://Field/debug}", name_label: "${e://Field/name_label}", ResponseID: "${e://Field/ResponseID}"
+    category: "${e://Field/category}", list: "${e://Field/list}", design_version: "${e://Field/design_version}", stranger_set: "${e://Field/stranger_set}", debug: "${e://Field/debug}", name_label: "${e://Field/name_label}", binding: "${e://Field/binding}", checkins: "${e://Field/checkins}", ResponseID: "${e://Field/ResponseID}"
   };
   function fail(e) {
     var c = q.getQuestionContainer ? q.getQuestionContainer() : document.body;
@@ -187,6 +187,8 @@ def main():
 
     q_cons_text = q({'QuestionText': '<p><b>[PLACEHOLDER: IRB-APPROVED CONSENT TEXT]</b></p>'
                                      f'<p>This study takes about <b>{est} minutes</b>. It requires <b>sound</b> (headphones or speakers) and a desktop or laptop computer.</p>'
+                                     '<p>You\'ll type the first name of someone you know and some brief notes about them, to help you design an avatar. '
+                                     'The name and notes are not saved.</p>'
                                      '<p>[Purpose, procedures, risks, benefits, compensation, confidentiality, voluntary participation, contact information.]</p>'}, 'consent_text')
     q_cons = mc('Do you agree to take part in this study?', 'consent', ['I agree to take part', 'I do not agree'])
     b_cons = block('Consent', [q_cons_text, q_cons])
@@ -251,7 +253,8 @@ def main():
     f = load_fields(a.design)
     exp_fields = [pre + n for n in all_field_names(f)]
     device_fields = [pre + n for n in ['device_ok', 'device_reason', 'device_screen', 'device_window', 'device_pointer']]
-    declared = (['PROLIFIC_PID', 'STUDY_ID', 'SESSION_ID', 'debug', 'name_label', 'design_version', 'category', 'list']
+    # binding / checkins: optional per-participant switches (blank = config); set them in a pilot copy of the survey.
+    declared = (['PROLIFIC_PID', 'STUDY_ID', 'SESSION_ID', 'debug', 'name_label', 'binding', 'checkins', 'design_version', 'category', 'list']
                 + (['stranger_set'] if r6 else []) + device_fields + exp_fields)
     # category/list (and stranger_set) are written by the Randomizer; the experiment also writes them back (as written fields).
     # design_version is set in the first flow element, so the experiment knows which version to run.

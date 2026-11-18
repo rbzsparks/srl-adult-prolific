@@ -3,7 +3,7 @@
  * Edit this file, push to GitHub Pages, and the live study picks it up.
  * ===================================================================== */
 window.SRL_CONFIG = {
-  VERSION: '2.2.0',
+  VERSION: '2.3.0',
 
   /* ---------- Design version ---------- */
   // 'unique12' = 12 scene sets, each shown once (36 test trials).
@@ -94,8 +94,26 @@ window.SRL_CONFIG = {
 
   RELATIONSHIP_TYPES: ['Friend', 'Parent', 'Sibling', 'Grandparent', 'Other relative', 'Coworker or classmate', 'Neighbor', 'Other'],
   KIN_TYPES: ['Parent', 'Sibling', 'Grandparent', 'Other relative'],
-  CONTACT_FREQ: ['Daily', 'A few times a week', 'About once a week', 'A few times a month', 'About once a month', 'Less than once a month'],
+  // Both contact questions (in person / other ways) use these options, most to least often; coded 7 .. 1.
+  CONTACT_FREQ: ['Every day or almost every day', 'A few times a week', 'About once a week', 'A few times a month', 'About once a month',
+    'A few times a year', 'Less than once a year'],
   DURATION: ['Less than 1 year', '1–3 years', '3–5 years', '5–10 years', 'More than 10 years'],
+
+  /* ---------- Linking the avatar to the person (PERSON_BINDING_SETUP.md) ---------- */
+  // Each switch skips its step and leaves its fields blank. binding=0/1 (URL / Qualtrics embedded data) overrides the
+  // first three for one participant; recorded as recall_enabled, revision_enabled, matching_enabled, steps_source.
+  RECALL_ENABLED: true,         // recall prompts + notes shown beside the designer (notes never saved)
+  REVISION_ENABLED: true,       // one-time "adjust the avatar?" offer after a low likeness rating
+  REVISION_MAX_RATING: 4,       // offered when the likeness rating is this or lower
+  MATCHING_ENABLED: true,       // avatar–name matching task
+  MATCH_TRIALS_PER_TYPE: 6,     // 4 types (kk, uu, ku, uk) -> 24 trials
+  MATCH_MAX_RT_MS: 2500,
+  MATCH_FLAG_BELOW: 0.75,       // match_flag = 1 when total accuracy is below this (flag only)
+
+  /* ---------- Person check-ins during familiarization (PERSON_CHECKINS.md) ---------- */
+  // checkins=0/1 overrides CHECKINS_ENABLED for one participant (recorded as checkins_enabled, steps_source).
+  CHECKINS_ENABLED: true,
+  CHECKIN_AFTER_TRIALS: [3, 6, 9],
 
   /* ---------- Unfamiliar person ---------- */
   UNFAMILIAR_NAMES: ['Jordan', 'Taylor', 'Casey', 'Morgan', 'Riley', 'Avery', 'Quinn', 'Jamie', 'Rowan', 'Emery', 'Reese', 'Sasha'],
@@ -120,6 +138,8 @@ window.SRL_CONFIG = {
   STIMULI_JSON_REPEAT6: 'stimuli/stimuli_repeat6.json',
 
   /* ---------- Copy ---------- */
-  ESTIMATED_MINUTES: 19,          // unique12 (consent page of qualtrics/survey.qsf)
-  ESTIMATED_MINUTES_REPEAT6: 17   // repeat6 (consent page of qualtrics/repeat6/survey.qsf)
+  // v2.3 adds about 2 min 40 s (recall, confirmation, introduction, matching, check-ins). The repeat6 pilot of
+  // 2026-11-18 took 10.4 min before these steps, so both numbers are probably generous; revisit after more pilots.
+  ESTIMATED_MINUTES: 22,          // unique12 (consent page of qualtrics/survey.qsf)
+  ESTIMATED_MINUTES_REPEAT6: 20   // repeat6 (consent page of qualtrics/repeat6/survey.qsf)
 };

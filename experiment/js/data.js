@@ -4,7 +4,7 @@
  *      engine 'nste'  : Qualtrics.SurveyEngine.setJSEmbeddedData(name, value) → survey-flow field "__js_<name>" (UNTESTED)
  *  - DataPipe → OSF (secondary backup, incremental).
  *  - Local runs: download (or POST to the dev server with ?devsave=1).
- * PRIVACY: nothing here ever receives the typed name. */
+ * PRIVACY: nothing here ever receives the typed name or the recall notes (tools/privacy_check.html tests this). */
 SRL.data = (function () {
   /* Field lists for a design: the unique12 lists, with the repeat6 overrides from fields.js "designs". */
   function fieldsFor(design) {
@@ -50,7 +50,8 @@ SRL.data = (function () {
 
   /* Full trial-level backup as compact JSON, split into chunks for the 20 KB-per-value Qualtrics limit. */
   function fullJson(S) {
-    return stringify({ v: SRL_CONFIG.VERSION, p: S.p, fam: S.fam, test: S.tests, filler2: S.filler2Trials, events: S.events });
+    return stringify({ v: SRL_CONFIG.VERSION, p: S.p, fam: S.fam, test: S.tests, filler2: S.filler2Trials,
+      match: S.matchTrials, checkins: S.checkinRows, events: S.events });
   }
   function chunks(json) {
     const n = SRL_CONFIG.JSON_CHUNKS, size = SRL_CONFIG.JSON_CHUNK_CHARS, out = [];
