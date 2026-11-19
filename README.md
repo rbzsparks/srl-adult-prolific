@@ -798,20 +798,34 @@ Matched pairs (same gender presentation and age); the first-listed member is in 
 
 | Pair → scene sets | Set X | Set Y |
 |---|---|---|
-| 1 → ss1 / ss2 | str01 / str07 (young women) | str02 / str08 (young men) |
+| 1 → ss1 / ss2 | str01 / str07 (young women) | **str13 / str14** (young men; repeat6 only, v2.4.1) |
 | 2 → ss3 / ss4 | str04 / str10 (middle-aged men) | str03 / str09 (middle-aged women) |
 | 3 → ss5 / ss6 | str05 / str11 (older women) | str06 / str12 (older men) |
 
-- Known and unfamiliar strangers therefore always have identical demographics, and all 12 strangers are used across participants.
+- Known and unfamiliar strangers therefore always have identical gender presentation and age, and all 12 strangers are used
+  across participants.
+- **Set Y's young men (v2.4.1, after collaborator feedback).** They were str02 (long braids, which read as a woman against a
+  male voice) and str08 (coily hair in a light brown that read as blonde). They are now **str13**, a white young man (light
+  skin, brown side part, blue eyes), and **str14**, a Latino young man (warm medium skin, short dark curls, stubble), defined
+  only in repeat6 (`NEW_STRANGERS` in `tools/build_repeat6_stimuli.py`). unique12 still uses str02 and str08. Each new man
+  keeps the voice, greeting and label clip of the stranger he replaces (str13: ElevenLabs "Will", `label_str02_bosa`;
+  str14: "Liam", `label_str08_daxa`), so no new audio was made. Trade-offs, accepted: set Y no longer has a Black
+  stranger (set X still has two, the older women), and this one pair is less closely matched on skin tone (S1 / S3) than the
+  others; lists A and B swap which of the two meets Alex.
+- **str05's foil exception.** str05's foil (set X) changes locs to braids, and braids were worn only by str02. The rule "every
+  foil's new style is also worn by a stranger" is therefore recorded as a documented exception (`foil_rule_exceptions` in
+  the stimulus file, shown by `make_foils.html`). Set X never showed braids on a stranger, so nothing changed for set X.
 - Foils are the frozen unique12 foils, except two repeat6-only changes (colour → style), so each young and middle-aged pair has
-  one style and one colour foil: **str02** braids → locs (`foil02b`), **str09** shoulder → long (`foil09b`).
+  one style and one colour foil: **str09** shoulder → long (`foil09b`). The new men's foils: **str13** side part → crop
+  (`foil13`), **str14** black → dark brown (`foil14`), plus four identity sliders moved as for every foil.
 - The first-listed member's foil type alternates across those pairs (X: colour, style; Y: style, colour), so each condition
   gets a mix within a participant (X odd: colour, style, style; even: style, colour, style).
 - Older pairs keep two style foils: all four have mostly grey hair, which would hide a colour change. Across the two lists,
   each stranger appears in both conditions, so style and colour foils stay balanced across conditions.
 - `tools/make_foils.html?design=repeat6` regenerates these foils and checks the rules (it refuses to save if one fails).
 - Audio: each stranger keeps their voice and greeting. Strangers who say a different word than in unique12 have their own
-  label clip (`label_<stranger>_<word>`: str10 tefo; str02 bosa, str08 daxa, str03 lufi, str09 tefo, str06 mavo, str12 gimu).
+  label clip (`label_<stranger>_<word>`: str10 tefo; str02 bosa, str08 daxa, str03 lufi, str09 tefo, str06 mavo, str12 gimu;
+  the str02 and str08 clips are now spoken by str13 and str14).
   These 7 were generated on 2026-11-17 with the same model (eleven_v4), voices and IPA as the other clips, take 1, normalized
   with `normalize_audio.py`, and are in the manifest (**listen before launch**). To regenerate one:
   `python tools/elevenlabs_tts.py generate --takes 3 --only label_str10_tefo`, choose a take in `tools/audio_review.html`,

@@ -3,7 +3,7 @@
  * Edit this file, push to GitHub Pages, and the live study picks it up.
  * ===================================================================== */
 window.SRL_CONFIG = {
-  VERSION: '2.4.0',
+  VERSION: '2.4.1',
 
   /* ---------- Design version ---------- */
   // 'unique12' = 12 scene sets, each shown once (36 test trials).

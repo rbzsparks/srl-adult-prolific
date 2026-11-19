@@ -146,8 +146,12 @@ SRL.avatarRules = (function () {
       out.push([Object.keys(use).every((t) => use[t] <= 2), `Set ${k}: each target style used by at most 2 foils`]);
     });
     const ents = []; Object.keys(stim.stranger_sets).forEach((k) => stim.stranger_sets[k].forEach((e) => ents.push(e)));
-    const nw = ents.filter((e) => !worn[e.foil_change[0]].has(e.foil_change[1])).map((e) => e.stranger.id);
-    out.push([!nw.length, 'Every new style or colour is also worn by a stranger' + (nw.length ? ' (not: ' + nw.join(', ') + ')' : '')]);
+    // Documented exceptions (stim.foil_rule_exceptions: stranger id -> reason) are listed, not counted as failures.
+    const exc = stim.foil_rule_exceptions || {};
+    const nwAll = ents.filter((e) => !worn[e.foil_change[0]].has(e.foil_change[1])).map((e) => e.stranger.id);
+    const nw = nwAll.filter((id) => !exc[id]), ex = nwAll.filter((id) => exc[id]);
+    out.push([!nw.length, 'Every new style or colour is also worn by a stranger' + (nw.length ? ' (not: ' + nw.join(', ') + ')' : '') +
+      (ex.length ? ' (documented exception: ' + ex.map((id) => id + ', ' + exc[id]).join('; ') + ')' : '')]);
     const sim = ents.filter((e) => e.foil_change[0] === 'style' && !(SIMILAR[e.stranger.hairStyle] || []).includes(e.foil_change[1])).map((e) => e.stranger.id);
     out.push([!sim.length, 'Style targets come from the similar-style list' + (sim.length ? ' (not: ' + sim.join(', ') + ')' : '')]);
     const bad = ents.filter((e) => e.foil_change[0] === 'colour' && (colourSteps(namedColour(e.stranger.hairColor))[e.foil_change[1]] !== 1 || grey(e.stranger))).map((e) => e.stranger.id);
