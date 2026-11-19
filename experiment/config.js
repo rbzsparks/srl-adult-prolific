@@ -24,6 +24,8 @@ window.SRL_CONFIG = {
   /* ---------- Prolific ---------- */
   COMPLETION_CODE: 'COMPLETION_CODE',   // placeholder; also set in the .qsf end-of-survey redirect
   SCREENOUT_CODE: 'SCREENOUT_CODE',     // placeholder; used only by the device-check branch in Qualtrics
+  NOCONSENT_CODE: 'NOCONSENT_CODE',     // placeholder; consent-declined branch (Prolific path "No consent" -> Request a return)
+  // The repo is public: keep these as placeholders and pass the real codes to tools/build_qsf.py with --out outside the repo.
 
   /* ---------- Secondary backup: DataPipe -> OSF ---------- */
   DATAPIPE: {

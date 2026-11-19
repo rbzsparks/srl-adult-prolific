@@ -174,7 +174,7 @@ Survey flow in the .qsf:
 
 1. **Embedded Data**: `PROLIFIC_PID`, `STUDY_ID`, `SESSION_ID`, `debug`, `name_label` (from the URL), plus every field the experiment writes (392 fields in total; listed in `qualtrics/embedded_data_fields.txt`).
 2. **Device check** (JS, before consent): mobile/tablet (by user agent), or a screen smaller than 1024 × 650 physical pixels (either orientation; measured as CSS pixels × `devicePixelRatio`, so Windows display scaling or browser zoom doesn't fail an ordinary laptop) → message showing the detected reason and screen size → **End of Survey → redirect to `…/complete?cc=SCREENOUT_CODE`**. Qualtrics' preview has a **Mobile view** toggle; with it on, a phone-sized frame is shown, so preview with it off.
-3. **Consent** (placeholder text, shows the ~22 min estimate, ~20 in repeat6, and says that some participants design an avatar of someone they know, typing a name and notes, while others copy an avatar, and that any name and notes typed are not saved; the consent comes before the Randomizer, so one text covers all four categories). "I do not agree" → "Please return this study on Prolific" (no Next button, no code).
+3. **Consent** (placeholder text, shows the ~22 min estimate, ~20 in repeat6, and says that some participants design an avatar of someone they know, typing a name and notes, while others copy an avatar, and that any name and notes typed are not saved; the consent comes before the Randomizer, so one text covers all four categories). "I do not agree" → a short message → **End of Survey → redirect to `…/complete?cc=NOCONSENT_CODE`** (Prolific requires non-consenting participants to be sent to a completion path; set that path to "Request a return").
 4. **Randomizer**: present 1 of 8 (repeat6: 1 of 16), **evenly present** on. Each element sets `category` (acquaintance / moderate / close / control) × `list` (A / B) (× `stranger_set` in repeat6).
 5. **Experiment (JS)**: one question whose JS loads the experiment from `BASE_URL`; the Next button is hidden and clicked automatically when the participant finishes.
 6. **Post-test questions**: expected a test? (Yes / No / Not sure), strategy (optional text), 2 experience items with 2 attention checks between them, technical problems (optional).
@@ -188,7 +188,7 @@ Survey flow in the .qsf:
 - [ ] **Survey flow → Randomizer → "Evenly present elements" is checked**, "Randomly present 1 of the following elements", with 6 elements.
 - [ ] **The Embedded Data element is the first element in the flow**, above the Experiment block (otherwise values the JS sets are not saved).
 - [ ] **Survey options → Back button is OFF.**
-- [ ] **Both End of Survey redirects** have the right codes (screen-out branch and the final element) and use `https://app.prolific.com/submissions/complete?cc=…`.
+- [ ] **All three End of Survey redirects** have the right codes (device screen-out branch, consent-declined branch, and the final element) and use `https://app.prolific.com/submissions/complete?cc=…`.
 - [ ] Experiment question JS: `BASE_URL` points at your GitHub Pages `experiment/` folder (with the trailing `/`).
 - [ ] Replace the consent / debrief placeholders and confirm the demographics with the IRB.
 - [ ] Preview with `?PROLIFIC_PID=test1&STUDY_ID=x&SESSION_ID=y&debug=1`, go through the whole survey, then check **Data & Analysis** that `ios`, `fam_01_view_ms`, `test_word_s01_correct` and `full_data_json_1` are filled.
@@ -224,7 +224,12 @@ fields appear in the data.
 
 - Study URL: `https://<your>.qualtrics.com/jfe/form/SV_xxx?PROLIFIC_PID={{%PROLIFIC_PID%}}&STUDY_ID={{%STUDY_ID%}}&SESSION_ID={{%SESSION_ID%}}`
 - Device filter: **Desktop only**. Listing text: **"Requires audio (headphones or speakers)."**
-- Completion code: the same `COMPLETION_CODE` as in the .qsf. Screen-out code (device check only): `SCREENOUT_CODE`.
+- Completion paths (Data collection → Completion paths; set up before publishing):
+  - **Completed** → approve and pay (or manually review): `COMPLETION_CODE`.
+  - **Screened out** (device check only) → fixed screen-out reward (minimum £0.10 / $0.14) with a screen-out cap of about 10: `SCREENOUT_CODE`. State the device requirement in the description and "Study details".
+  - **No consent** → "Request a return": `NOCONSENT_CODE`. Unreviewed submissions on this path are auto-approved at the full reward after 21 days, so check them.
+- Build the survey with the real codes into a folder **outside the repo** (the repo is public):
+  `python tools/build_qsf.py --design repeat6 --completion-code … --screenout-code … --noconsent-code … --out <folder outside the repo>/survey.qsf`
 - Duration estimate shown on the consent page: about 22 min (`ESTIMATED_MINUTES`; repeat6 20). v2.3 added about 2 min 40 s for the binding steps and check-ins; it was 19 in v2.1–2.2. The one repeat6 pilot before v2.3 took 10.4 min against an estimate of 17, so both numbers are probably generous. Confirm it with the pilot (`total_ms`, `t_*_ms`, and Qualtrics `Duration`), then set pay at or above Prolific's recommended rate.
 
 ## 6. Configuration and [DECISION] flags
@@ -234,7 +239,7 @@ All in `experiment/config.js`.
 | Setting | Default | Notes |
 |---|---|---|
 | `QUALTRICS_ENGINE` | `'legacy'` | `'nste'` = untested path, §4.5 |
-| `COMPLETION_CODE`, `SCREENOUT_CODE` | placeholders | also set in the .qsf redirects (rebuild with `--completion-code` / `--screenout-code`) |
+| `COMPLETION_CODE`, `SCREENOUT_CODE`, `NOCONSENT_CODE` | placeholders | the .qsf redirects; pass real codes with `--completion-code` / `--screenout-code` / `--noconsent-code` rather than committing them (§5) |
 | `DATAPIPE.EXPERIMENT_ID` | placeholder | backup is skipped while it's a placeholder or in debug mode |
 | `DESIGN_VERSION` | `'unique12'` | fallback only: each survey passes `design_version` to the experiment (§18). Recorded as `design_version`, with `design_version_source` = `qsf` (passed by the survey), `url` (local runs) or `config_fallback` |
 | `ESTIMATED_MINUTES`, `ESTIMATED_MINUTES_REPEAT6` | `22`, `20` | consent-page estimates (unique12, repeat6) |

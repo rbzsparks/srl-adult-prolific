@@ -3472,7 +3472,13 @@
        },
        {
         "Type": "EndSurvey",
-        "FlowID": "FL_7"
+        "FlowID": "FL_7",
+        "EndingType": "Advanced",
+        "Options": {
+         "Advanced": "true",
+         "SurveyTermination": "Redirect",
+         "EOSRedirectURL": "https://app.prolific.com/submissions/complete?cc=NOCONSENT_CODE"
+        }
        }
       ]
      },
@@ -4256,7 +4262,7 @@
    "SecondaryAttribute": "declined_msg",
    "TertiaryAttribute": null,
    "Payload": {
-    "QuestionText": "<p>You chose not to take part. Please <b>return this study on Prolific</b> (click \"Return\" in Prolific). Thank you for your time.</p><p>You can close this window now.</p>",
+    "QuestionText": "<p>You chose not to take part. Thank you for your time.</p><p>Click the arrow to go back to Prolific, which will ask you to <b>return</b> this study.</p>",
     "DataExportTag": "declined_msg",
     "QuestionType": "DB",
     "Selector": "TB",
@@ -4278,8 +4284,7 @@
     "DataVisibility": {
      "Private": false,
      "Hidden": false
-    },
-    "QuestionJS": "Qualtrics.SurveyEngine.addOnload(function () { this.hideNextButton(); if (this.hidePreviousButton) { this.hidePreviousButton(); } });\n"
+    }
    }
   },
   {

@@ -3,7 +3,7 @@
 Survey flow:
   1. Embedded Data: PROLIFIC_PID, STUDY_ID, SESSION_ID, debug (from URL) + every field the experiment writes
   2. Device check block (JS) -> Branch: device_ok = 0 -> message + End of Survey (redirect SCREENOUT_CODE)
-  3. Consent block -> Branch: declined -> "Please return this study" (no Next button) + End of Survey
+  3. Consent block -> Branch: declined -> message + End of Survey (redirect NOCONSENT_CODE; Prolific path "Request a return")
   4. Randomizer (evenly present): category x list (8 branches); repeat6: category x list x stranger_set (16 branches).
      category: acquaintance / moderate / close / control (v2.4: copy a random avatar; no known person)
   5. Experiment block (one question whose JS loads the experiment from BASE_URL; Next button hidden)
@@ -13,7 +13,8 @@ Survey flow:
 Usage:
   python tools/build_qsf.py --base-url https://rbzsparks.github.io/<repo>/experiment/ [--engine legacy|nste]
   python tools/build_qsf.py --design repeat6        (writes qualtrics/repeat6/; a separate Prolific study)
-                            [--completion-code CODE] [--screenout-code CODE]
+                            [--completion-code CODE] [--screenout-code CODE] [--noconsent-code CODE] [--out PATH]
+  With real Prolific codes, pass --out to a folder outside the repo (the repo is public).
 """
 import argparse
 import json
@@ -120,9 +121,6 @@ DEVICE_JS = r"""Qualtrics.SurveyEngine.addOnload(function () {
 });
 """
 
-HIDE_NEXT_JS = """Qualtrics.SurveyEngine.addOnload(function () { this.hideNextButton(); if (this.hidePreviousButton) { this.hidePreviousButton(); } });
-"""
-
 
 def main():
     ap = argparse.ArgumentParser()
@@ -130,6 +128,7 @@ def main():
     ap.add_argument('--engine', choices=['legacy', 'nste'], default='legacy')
     ap.add_argument('--completion-code', default=config_value('COMPLETION_CODE') or 'COMPLETION_CODE')
     ap.add_argument('--screenout-code', default=config_value('SCREENOUT_CODE') or 'SCREENOUT_CODE')
+    ap.add_argument('--noconsent-code', default=config_value('NOCONSENT_CODE') or 'NOCONSENT_CODE')
     ap.add_argument('--design', choices=['unique12', 'repeat6'], default='unique12')
     ap.add_argument('--out', default='')
     a = ap.parse_args()
@@ -194,8 +193,9 @@ def main():
                                      '<p>[Purpose, procedures, risks, benefits, compensation, confidentiality, voluntary participation, contact information.]</p>'}, 'consent_text')
     q_cons = mc('Do you agree to take part in this study?', 'consent', ['I agree to take part', 'I do not agree'])
     b_cons = block('Consent', [q_cons_text, q_cons])
-    q_decl = q({'QuestionText': '<p>You chose not to take part. Please <b>return this study on Prolific</b> (click "Return" in Prolific). Thank you for your time.</p><p>You can close this window now.</p>',
-                'QuestionJS': HIDE_NEXT_JS}, 'declined_msg')
+    # Prolific requires non-consenting participants to be redirected to a completion path ("No consent" -> Request a return).
+    q_decl = q({'QuestionText': '<p>You chose not to take part. Thank you for your time.</p>'
+                                '<p>Click the arrow to go back to Prolific, which will ask you to <b>return</b> this study.</p>'}, 'declined_msg')
     b_decl = block('Declined consent', [q_decl])
 
     q_exp = q({'QuestionText': '<div id="srl-loading" style="font-size:18px">Loading the study… This can take a few seconds.</div>',
@@ -274,7 +274,7 @@ def main():
                                                'QuestionIDFromLocator': q_cons, 'LeftOperand': f'q://{q_cons}/SelectableChoice/2', 'Type': 'Expression',
                                                'Description': '<span class="ConjDesc">If</span> <span class="QuestionDesc">consent</span> <span class="LeftOpDesc">I do not agree</span> <span class="OpDesc">Is Selected</span> '},
                                          'Type': 'If'}, 'Type': 'BooleanExpression'},
-                   'Flow': [blk(b_decl), end()]}
+                   'Flow': [blk(b_decl), end(prolific + a.noconsent_code)]}
     rand_children = []
     for cat in ['acquaintance', 'moderate', 'close', 'control']:
         for lst in ['A', 'B']:
