@@ -3,7 +3,7 @@
 jsPsych 8.2.1 experiment, embedded in a **Qualtrics** survey (classic layout), recruited on **Prolific**.
 Participants name someone they know (closeness category assigned between subjects), rate closeness (IOS), contact
 frequency and relationship duration, picture that person and jot down a few private notes, build an avatar of them, confirm it,
-meet an unfamiliar person ("Jordan"), do a short avatar–name matching task, read the scene instructions, get a 15-second
+meet an unfamiliar person ("Jordan"), do a short avatar–name matching task, read the scene instructions, get a 10-second
 "get ready" countdown, watch 12 animated scenes with audio (with three short person check-ins), rate how much the avatar felt
 like their person, do a 45-second arithmetic filler, and then take surprise memory tests for words, faces and incidental objects.
 The steps that link the avatar to the person (v2.3) are in [§19](#19-linking-the-avatar-to-the-person-and-check-ins-v23).
@@ -254,7 +254,7 @@ All in `experiment/config.js`.
 | `TEST_BLOCK_ORDER_MODE` | `'fixed'` | fixed `word → face → incid`; `'counterbalanced'` = random of the 6 orders; recorded as `test_block_order` |
 | `CONFIDENCE_RATINGS` | `false` | 1–4 after each test trial (JSON backup only) |
 | `AUDIO_CHECK_EXCLUDES` | `false` | failed audio check is flagged only |
-| `TIMING.*` | spec values | stranger entry 600 ms; response 900 ms; SPACE enabled 1 s after the label audio ends; auto-advance 15 s after it ends; ISI 500 ms; `FILLER1` 15 s (countdown); `FILLER2` 45 s (arithmetic) with `FILLER2_DEADLINE` 3 s per problem |
+| `TIMING.*` | spec values | stranger entry 600 ms; response 900 ms; SPACE enabled 1 s after the label audio ends; auto-advance 15 s after it ends; ISI 500 ms; `FILLER1` 10 s (countdown; 15 s before v2.4.2); `FILLER2` 45 s (arithmetic) with `FILLER2_DEADLINE` 3 s per problem |
 | `FILLER2_ENGAGEMENT_MIN` | `0.70` | arithmetic accuracy below this sets `filler2_low_engagement = 1` |
 | `DEBUG_TIMING` | countdown 5 s, arithmetic 15 s | applied with `debug=1` |
 | `DEVICE` | 1024 × 650 screen; window prompt below 1000 × 600 | small windows get a "please maximize" prompt, never a rejection |
@@ -288,7 +288,7 @@ and 10b is skipped.
 | 7e | Avatar–name matching: 24 trials, F / J | `t_matching_ms` |
 | 8 | Sound check: "window", then "garden" on a second attempt. Case and spaces ignored; one letter off accepted | `t_audio_check_ms` |
 | 9 | Scene instructions: "short moments from [name]'s and Jordan's days, as they run into people they know" (surprise framing) | `t_fam_ms` |
-| 10 | Filler 1: "Get ready – The first scene starts in a moment" with a countdown, 15 s; the first scene then starts automatically. Then the 12 scenes, with a person check-in after scenes 3, 6 and 9 | `t_filler1_ms` (countdown), `t_fam_ms`, `t_checkin_ms` |
+| 10 | Filler 1: "Get ready – The first scene starts in a moment" with a countdown, 10 s (15 s before v2.4.2); the first scene then starts automatically. Then the 12 scenes, with a person check-in after scenes 3, 6 and 9 | `t_filler1_ms` (countdown), `t_fam_ms`, `t_checkin_ms` |
 | 10b | "While watching the scenes, how much did the avatar feel like [name]?" (1–7) | (JSON `t_represent_ms`) |
 | 11 | Filler 2: arithmetic verification (Y/N), fixed 45 s (retention delay before the tests). Each problem has a 3 s deadline shown by a shrinking bar under it; a missed deadline shows "Too slow" and counts as an error | `t_filler2_ms` |
 | 12 | "Questions about the scenes" → Word (12) → Face (12) → Incidental (12), each block with a short intro | `t_test_ms` |
@@ -769,7 +769,7 @@ These are recorded, not enforced: the preregistered rules decide.
 ## 18. Repeat6 version (6 scene sets, each shown twice)
 
 A second study built from the same code. Everything not listed here is identical to unique12: avatar designer, unfamiliar
-person, audio and animation, fillers (15 s countdown, 45 s arithmetic), post-test, device check, Qualtrics / Prolific
+person, audio and animation, fillers (10 s countdown since v2.4.2, 45 s arithmetic), post-test, device check, Qualtrics / Prolific
 setup. Spec: `REPEAT6_VERSION.md` (with the decisions made on 2026-11-17).
 
 ### 18.1 Version switch

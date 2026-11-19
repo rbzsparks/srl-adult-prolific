@@ -3,7 +3,7 @@
  * Edit this file, push to GitHub Pages, and the live study picks it up.
  * ===================================================================== */
 window.SRL_CONFIG = {
-  VERSION: '2.4.1',
+  VERSION: '2.4.2',
 
   /* ---------- Design version ---------- */
   // 'unique12' = 12 scene sets, each shown once (36 test trials).
@@ -58,7 +58,7 @@ window.SRL_CONFIG = {
     SPACE_ENABLE_AFTER_LABEL: 1000,
     AUTO_ADVANCE_AFTER_LABEL: 15000,
     ISI: 500,
-    FILLER1: 15000,             // "Get ready" countdown between the scene instructions and the first scene
+    FILLER1: 10000,             // "Get ready" countdown (15 s before v2.4.2) between the scene instructions and the first scene
     FILLER2: 45000,             // arithmetic verification after the scenes (retention delay)
     FILLER2_DEADLINE: 3000,     // response deadline per arithmetic problem (counts as an error if missed)
     TEST_ITI: 400
