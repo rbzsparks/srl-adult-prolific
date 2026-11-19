@@ -410,6 +410,16 @@ SRL.people = (function () {
     return out;
   }
 
+  // A fine loose strand (wisps, flyaways, tendrils; v2.3.2): a smooth line through the points, in the hair colour.
+  const strand = (q, C, w, o) => `<path d="M${cr(q, false, 8).map(ptw).join('L')}" fill="none" stroke="${C.hair}" stroke-width="${w}" opacity="${o}" stroke-linecap="round"/>`;
+
+  // A stray curl / coil (v2.3.2): a strand leaving p0 in direction (dx, dy) and looping n times (radius r) over len.
+  const curlWisp = (p0, dx, dy, len, n, r, C, w, o) => {
+    const m = Math.hypot(dx, dy) || 1, ux = dx / m, uy = dy / m, a = len / (2 * Math.PI * n), q = [];
+    for (let i = 0; i <= n * 14; i++) { const th = 2 * Math.PI * i / 14, u = a * th + r * Math.sin(th) * 0.9, v = r * (1 - Math.cos(th)); q.push(ptw([p0[0] + ux * u - uy * v, p0[1] + uy * u + ux * v])); }
+    return `<path d="M${q.join('L')}" fill="none" stroke="${C.hair}" stroke-width="${w}" opacity="${o}" stroke-linecap="round" stroke-linejoin="round"/>`;
+  };
+
   function hair(p, g, C, lv, id) {
     if (p.covering === 'hijab' || p.covering === 'turban') return { back: '', front: '', over: '' };
     const hw = g.hw, st = p.hairStyle, tex = p.texture;
@@ -648,6 +658,20 @@ SRL.people = (function () {
             for (let k = -3; k <= 3; k++) d += `M${pt([100 + k * hw * 0.27, 63 - Math.abs(k) * 0.8])}Q${pt([100 + k * hw * 0.2, 48])} ${pt([100 + k * 3, 37])}`;
             front += `<path d="${d}" fill="none" stroke="${C.hairLine}" stroke-width="0.7" opacity="0.22" stroke-linecap="round"/>` + rim(pts, C, 1);
           }
+          // Wisps (v2.3.2): stray curls / coils standing out from the edge of the puff, and a small loose curl at each
+          // temple, so the puff looks soft rather than sculpted.
+          const rw = rng(75), wc0 = lstar(C.hair) > 55 ? shade(C.hair, 10) : C.hair;
+          for (let k = 0; k < 15; k++) {
+            const a = Math.PI * (-0.1 + 1.2 * (k + 0.2 + 0.6 * rw()) / 15), ca = Math.cos(a), sa = Math.sin(a), sd = rw() < 0.5 ? 1 : -1;
+            const p0 = [100 + 21 * ca, 22 - 18 * sa];
+            back += curlWisp(p0, ca + sd * 0.4 * sa, -sa + sd * 0.4 * ca, coil ? 3 + 2 * rw() : 4.5 + 2.5 * rw(), coil ? 2 : 1, coil ? 0.9 : 1.4, { hair: wc0 }, 0.55, 0.85);
+          }
+          const wc = lstar(C.hair) > 55 ? shade(C.hair, 10) : C.hair;
+          for (const sd of [-1, 1]) for (const [dx, n0, w] of [[0, coil ? 7 : 5, 1.1], [-2.6, coil ? 4 : 3, 0.8]]) {
+            const x0 = 100 + sd * (hw - 2 + dx), y0 = 88, q = [[x0, y0]], n = n0, step = coil ? 2.2 : 3.2;
+            for (let i = 1; i <= n; i++) q.push([x0 + sd * (0.8 + (i % 2 ? 1.5 : -1.2) * (coil ? 1 : 1.5)), y0 + i * step]);
+            front += strand(q, { hair: wc }, w, 0.9);
+          }
         } else {
           // Straight / wavy bun (v2.3): hair drawn smoothly back toward the crown with strands converging on the bun; the
           // bun is a slightly flattened, wrapped coil (wrap lines spiralling round it, shaded underneath) sitting on top,
@@ -690,6 +714,39 @@ SRL.people = (function () {
               // the band where the bun meets the head
               `<path d="M${pt([bx - 9, 34.5])}Q${pt([bx, 31])} ${pt([bx + 9, 34.5])}" fill="none" stroke="${shade(C.hair, 18)}" stroke-width="2.6" stroke-linecap="round" opacity="0.85"/>` +
               rim(pts, C, 1);
+          }
+          // Wisps (v2.3.2): a few loose tendrils falling at each temple in front of the ear (longer on one side), fine
+          // strands lifting off the head and the bun in soft loops that break the outline, and short baby hairs along
+          // the hairline, so the updo looks soft and lived-in rather than sculpted.
+          const rw = rng(80), sw = wavy ? 2.4 : 1.4, wc = lstar(C.hair) > 55 ? shade(C.hair, 10) : C.hair;
+          // loops: a run of outline points pushed outward (away from cx, cy) by up to h, back to the outline at both ends
+          const loop = (pts, cx, cy, h) => pts.map(([x, y], i) => { const t = i / (pts.length - 1), m = Math.hypot(x - cx, y - cy) || 1, e = h * Math.sin(Math.PI * t); return [x + (x - cx) / m * e, y + (y - cy) / m * e]; });
+          const ell = (cx, cy, ex, ey, a0, a1, n) => { const o = []; for (let i = 0; i <= n; i++) { const a = a0 + (a1 - a0) * i / n; o.push([cx + ex * Math.cos(a), cy - ey * Math.sin(a)]); } return o; };
+          for (const sd of [-1, 1]) {
+            const lf = sd > 0 ? 1 : 0.78;
+            for (const [dx, dy, ln, w, o] of [[0, 0, 40, 1.1, 0.95], [-2.4, -4, 31, 0.75, 0.85], [1.8, 2, 24, 0.6, 0.75]]) {
+              const x0 = 100 + sd * (hw - 3 + dx), y0 = 86 + dy, L = ln * lf;
+              front += strand([[x0, y0], [x0 + sd * (1.2 + sw), y0 + L * 0.3], [x0 + sd * (1.6 - sw), y0 + L * 0.64], [x0 + sd * (2.6 + sw * 0.7), y0 + L]], { hair: wc }, w, o);
+            }
+            if (lv >= 2) {
+              let d = '';
+              for (let k = 0; k < 5; k++) {
+                const t = 0.15 + 0.17 * k + 0.05 * rw(), x = 100 + sd * hw * (0.45 + 0.5 * t), y = 62 + 30 * t * t;
+                d += `M${pt([x, y - 1.5])}q${f(sd * 0.8)} 1.6 ${f(sd * (1.6 + rw()))} ${f(2.6 + rw() * 1.5)}`;
+              }
+              front += `<path d="${d}" fill="none" stroke="${wc}" stroke-width="0.45" opacity="0.7" stroke-linecap="round"/>`;
+            }
+          }
+          if (lv >= 2) {
+            // loops off the head, along the hair outline between the bun and the temples
+            const N = c.outer.length;
+            for (const [u0, u1, h] of [[0.14, 0.22, 2.2], [0.25, 0.33, 2.8], [0.3, 0.36, 1.4], [0.64, 0.7, 1.5], [0.67, 0.75, 2.6], [0.78, 0.86, 2]]) {
+              front += strand(loop(c.outer.slice(Math.round(N * u0), Math.round(N * u1) + 1), 100, 80, h), { hair: wc }, 0.5, 0.85);
+            }
+            // loops off the bun
+            for (const [a0, a1, h] of [[0.05, 0.22, 2.6], [0.3, 0.42, 1.8], [0.55, 0.7, 2.4], [0.78, 0.95, 2], [0.15, 0.3, 1.2], [0.62, 0.8, 1.3]]) {
+              back += strand(loop(ell(bx, by, rx * 0.97, ry * 0.97, Math.PI * a0, Math.PI * a1, 8), bx, by, h), { hair: wc }, 0.5, 0.85);
+            }
           }
         }
         break;

@@ -442,6 +442,13 @@ Designed and reviewed in `design/avatar_style_sheet.html` (shading levels, rules
 - **Straight / wavy bun (redrawn in v2.3; it was a flat circle on a plain cap):** a fuller, slightly flattened bun with wrap
   lines spiralling round it, shading underneath and a highlight, a band where it meets the head, and the hair combed back
   with strands that sweep up from a softly uneven hairline and fade over the crown (gently waving for wavy hair).
+- **Wisps on updos (v2.3.2, from collaborator feedback that the updo looked too neat):** the straight / wavy bun has
+  loose tendrils at each temple in front of the ear (longer on one side), fine strands lifting off the head and the bun in
+  soft loops that break the outline, and baby hairs along the hairline. The puff has stray curls / coils standing out
+  round its edge (tiny loops for coily hair, single curls for curly) and a small loose curl at each temple. The wisps are
+  part of the head drawing, so they turn and tilt with it. No stranger wears a bun or puff, so the stimulus files are
+  unchanged; this affects participants who pick these styles for the known person (and so that person's unfamiliar
+  match).
 - **Hair in motion (v2.3):** in the scenes the head tilts toward the object (about 9°) and drops slightly. Before v2.3 all
   hair turned with the head as one rigid piece, so long hair, locs and braids swung their ends sideways, and the strands in
   front of the shoulders didn't move at all. Now short and rounded styles still move rigidly, but hair that hangs below the
