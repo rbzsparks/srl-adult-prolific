@@ -1004,7 +1004,7 @@ SRL.people = (function () {
       hang: hijab ? HANG.hijab : HANG[p.hairStyle] || null,
       headUnder: (hijab ? '' : ears) + head + ageLines(p, g, C) + freck + facialW + nose(g, C, lv),
       headOver: glasses(p, g, C, lv) + (hijab ? '' : coverW),
-      halo: p.facial === 'mustache' || p.facial === 'beard' || p.facial === 'fullbeard'
+      halo: p.facial === 'mustache' || p.facial === 'beard' || p.facial === 'fullbeard', key
     };
     cache.set(key, out);
     if (cache.size > 60) cache.delete(cache.keys().next().value);
@@ -1040,25 +1040,73 @@ SRL.people = (function () {
     const rot = o.rot || 0, dx = 45 * Math.sin(rot * Math.PI / 180);
     return `translate(${f((1 - w) * dx)} ${f(o.nod || 0)}) rotate(${f(rot * w)} 100 165)`;
   };
-  /* A banded layer is drawn once into an image (an SVG data URL), and the bands show that image. The browser keeps the
-   * image rendered, so animating the bands costs a few image draws per frame instead of re-rendering the hair's
-   * paths once per band (which made scenes with braids or locs lag). Memoised per figure. */
-  function layerImage(S, kind, content) {
-    S.img = S.img || {};
-    if (!S.img[kind]) {
-      const doc = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 240" width="400" height="480"><defs>${S.defs}</defs>${content}</svg>`;
-      S.img[kind] = `<image href="data:image/svg+xml;charset=utf-8,${encodeURIComponent(doc)}" x="0" y="0" width="200" height="240" preserveAspectRatio="none"/>`;
-    }
-    return S.img[kind];
+  /* Animated figures (v2.3.3). In the scenes every hair layer is shown as a bitmap: the layer is drawn once onto a
+   * canvas (as a PNG, at several pixels per unit, more on high-density screens) and the figure shows that picture. Each
+   * frame of a head turn then costs a few bitmap draws. Before v2.3.3 the layers were shown as SVG images (v2.3.1) or
+   * plain paths (v2.3.0); the browser still replayed every path of the hair on every frame (once per band for hanging
+   * hair), which made scenes with braids and locs lag. Until a layer's bitmap is ready (the first few hundred ms) the SVG
+   * image is shown, and it is swapped for the bitmap in place; if the browser refuses (e.g. an old browser treats the
+   * canvas as tainted) the SVG image simply stays. Bitmaps are kept per figure + layer for the whole session.
+   * prerender(spec, facing) starts the bitmaps for a figure and resolves when they are ready. */
+  const RASTER = new Map();
+  const rasterScale = () => Math.min(7, 3.5 * Math.max(1, (typeof window !== 'undefined' && window.devicePixelRatio) || 1));
+  function rasterize(r) {
+    r.p = new Promise((resolve) => {
+      try {
+        const sc = rasterScale(), im = new Image();
+        im.onload = () => {
+          try {
+            const cv = document.createElement('canvas');
+            cv.width = Math.round(200 * sc); cv.height = Math.round(240 * sc);
+            cv.getContext('2d').drawImage(im, 0, 0, cv.width, cv.height);
+            cv.toBlob((b) => {
+              if (b) {
+                r.url = URL.createObjectURL(b);
+                const els = document.querySelectorAll('image[data-rk="' + r.key + '"]');
+                for (let k = 0; k < els.length; k++) els[k].setAttribute('href', r.url);
+              }
+              resolve(!!b);
+            }, 'image/png');
+          } catch (e) { resolve(false); }
+        };
+        im.onerror = () => resolve(false);
+        im.src = r.svgUrl.replace('width%3D%22400%22%20height%3D%22480%22', 'width%3D%22' + Math.round(200 * sc) + '%22%20height%3D%22' + Math.round(240 * sc) + '%22');
+      } catch (e) { resolve(false); }
+    });
   }
-  // One hair layer (back / front / over), banded when the style hangs.
+  let rk = 0;
+  function layerRaster(S, kind, content) {
+    const k = S.key + '|' + kind;
+    let r = RASTER.get(k);
+    if (!r) {
+      const doc = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 240" width="400" height="480"><defs>${S.defs}</defs>${content}</svg>`;
+      r = { key: 'r' + (++rk), svgUrl: 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(doc), url: null };
+      RASTER.set(k, r);
+      rasterize(r);
+    }
+    return r;
+  }
+  function layerImage(S, kind, content) {
+    const r = layerRaster(S, kind, content);
+    return `<image data-rk="${r.key}" href="${r.url || r.svgUrl}" x="0" y="0" width="200" height="240" preserveAspectRatio="none"/>`;
+  }
+  function prerender(spec, facing) {
+    try {
+      if (!spec) return Promise.resolve([]);
+      const S = staticParts(spec, Object.assign({}, DEFAULT_STATE, { facing: facing || 0 }));
+      const ps = [];
+      [['b', S.back], ['f', S.front], ['o', S.over]].forEach(([kind, c]) => { if (c) ps.push(layerRaster(S, kind, c).p); });
+      return Promise.all(ps);
+    } catch (e) { return Promise.resolve([]); }
+  }
+  // One hair layer (back / front / over), banded when the style hangs. Animated figures (o.cacheHair, set by the scenes)
+  // show the layer as a bitmap; still pictures keep the plain paths, so the designer preview never waits on an image.
   function hairLayer(S, o, kind, content) {
     if (!content) return '';
-    if (!S.hang) return `<g class="p-hair" data-w="1" transform="${hairT(o, 1)}">${content}</g>`;
+    const body = o.cacheHair ? layerImage(S, kind, content) : content;
+    if (!S.hang) return `<g class="p-hair" data-w="1" transform="${hairT(o, 1)}">${body}</g>`;
     const ref = S.id + 'L' + kind;
-    // Animated figures (o.cacheHair, set by the scenes) use the cached image; still pictures keep the plain paths, so the
-    // designer preview never waits for an image to decode while a slider moves.
-    let out = `<defs><g id="${ref}">${o.cacheHair ? layerImage(S, kind, content) : content}</g>`;
+    let out = `<defs><g id="${ref}">${body}</g>`;
     const bands = hangBands(S.hang);
     bands.forEach((b, i) => { out += `<clipPath id="${ref}c${i}"><rect x="-100" y="${f(b.y0)}" width="400" height="${f(b.y1 - b.y0)}"/></clipPath>`; });
     out += '</defs>';
@@ -1125,6 +1173,6 @@ SRL.people = (function () {
   // Compact, ordered "key=value;..." string for data files (numbers to 2 decimals).
   const vecString = (p) => FEATURE_KEYS.map((k) => k + '=' + (typeof p[k] === 'number' ? p[k].toFixed(2) : p[k])).join(';');
 
-  return { svg, PersonRig, STYLES, IRIS, SHIRTS, DESIGNER_SHIRTS, STRANGER_SHIRTS, COVER, HAIR_STOPS, skinHex, hairHex, rng, lstar,
+  return { svg, PersonRig, prerender, STYLES, IRIS, SHIRTS, DESIGNER_SHIRTS, STRANGER_SHIRTS, COVER, HAIR_STOPS, skinHex, hairHex, rng, lstar,
     FEATURE_KEYS, NEUTRAL, GRAY_MAX, AGES, TEXTURES, LENGTHS, FACIAL, GLASSES, COVERINGS, stylesFor, vecString };
 })();

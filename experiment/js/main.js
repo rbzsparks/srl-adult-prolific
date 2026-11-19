@@ -205,6 +205,8 @@ SRL.main = (function () {
     const B = SRL.binding;
     const F2_KEYS = ['filler2_accuracy', 'filler2_n_attempted', 'filler2_n_timeout', 'filler2_low_engagement'];
     const Sc = SRL.screens;
+    // Start the hair bitmaps for a scene's two figures (as the scene draws them); resolves when both are ready.
+    const prerenderScene = (sc) => [SRL.people.prerender(sc.stranger, 1), SRL.people.prerender(sc.condition === 'known' ? S.knownSpec : S.unfamiliarSpec, -1)];
 
     const timeline = [
       step('intro', 'intro', async (el) => { UI.debug(''); return keep(await Sc.intro(el, S), ['window_small_prompt', 'window_w', 'window_h']); }),
@@ -258,11 +260,13 @@ SRL.main = (function () {
       }),
       step('matching', 'matching', async (el) => (S.steps.matching ? all(await B.matching(el, S)) : {})),
       step('audio_check', 'audio_check', async (el) => keep(await Sc.audioCheck(el, S), ['audio_check_pass', 'audio_check_attempts'])),
-      step('fam_instructions', 'fam', async (el) => { SRL.progress.stage('fam'); return Sc.famInstructions(el, S); }),
+      step('fam_instructions', 'fam', async (el) => { SRL.progress.stage('fam'); S.design.fam.forEach(prerenderScene); return Sc.famInstructions(el, S); }),
       step('filler1', 'filler1', (el) => SRL.fillers.getReady(el, S, S.timing.FILLER1))
     ];
     S.design.fam.forEach((sc, i) => {
       timeline.push(step('fam_scene', 'fam', async (el) => {
+        // The figures' hair is shown as bitmaps (people.js prerender); normally ready long before, e.g. after a reload.
+        await Promise.race([Promise.all(prerenderScene(sc)), U.sleep(2500)]);
         const ctx = { knownSpec: S.knownSpec, unfamiliarSpec: S.unfamiliarSpec, knownName: S.knownName, unfamiliarName: S.unfamiliarName,
           timing: S.timing, debug: S.debug, auto: S.auto, list: S.list, showName: S.showName };
         const r = await SRL.scene.run(el, sc, ctx);

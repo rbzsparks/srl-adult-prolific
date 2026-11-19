@@ -455,10 +455,15 @@ Designed and reviewed in `design/avatar_style_sheet.html` (shading levels, rules
   jaw (shoulder length, long, long curls, locs, braids, and slightly the bobs and medium curls) is drawn in horizontal bands
   (`HANG`, `hangBands`, `hairLayer` in `js/people.js`): above the jaw it turns with the head; the turn then fades out over 12
   steps, so the ends hang straight down and only move along with the head (sideways shift and drop). The strands in front of
-  the shoulders follow the same rule. In the scenes each banded layer is drawn once into a cached image that the bands
-  show (`layerImage`, `cacheHair`), so animating costs a few image draws per frame; v2.3.0 re-rendered the hair's paths in
-  every band, which made scenes with braids or locs lag (fixed in v2.3.1). Still pictures (designer, tests) keep the plain
-  paths. `tools/hair_motion.html` loops every style through the scenes' own look at the partner
+  the shoulders follow the same rule. In the scenes (`cacheHair`) every hair layer is shown as a **bitmap**: it is drawn
+  once onto a canvas as a PNG (3.5 px per unit, x the screen's pixel ratio, up to 7) and the bands show that picture
+  (`layerImage`, `prerender`). The bitmaps for every scene are started during the scene instructions, and each scene waits
+  (at most 2.5 s) for its own two figures, so after a reload they are rebuilt before the scene starts. Until a bitmap is
+  ready the layer is shown as an SVG image and swapped in place; if a browser refuses the canvas, the SVG image stays.
+  History: v2.3.0 drew the hair's paths in every band, and v2.3.1 drew them into an SVG image; the browser still replayed
+  every path on every frame in both, so scenes with braids or locs lagged. Measured with two locs figures turning
+  (the s05 / "mavo" stranger): 5.7 frames per second drawn as vectors, 54.5 as bitmaps (v2.3.3). Still pictures
+  (designer, tests) keep the plain paths. `tools/hair_motion.html` loops every style through the scenes' own look at the partner
   and at the object, as the stranger and as the known / unfamiliar person.
 - **Review page:** `tools/hair_review.html` shows every changed style old (v2.2, from `tools/legacy/people_v2.2.js`) beside
   new, across five skin-tone / hair-colour combinations, at designer and scene size. **These drawings still need sign-off
