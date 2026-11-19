@@ -211,7 +211,7 @@
     "Flow": [
      {
       "Type": "EmbeddedData",
-      "FlowID": "FL_15",
+      "FlowID": "FL_17",
       "EmbeddedData": [
        {
         "Description": "PROLIFIC_PID",
@@ -538,6 +538,78 @@
         "Description": "unfamiliar_name",
         "Type": "Recipient",
         "Field": "unfamiliar_name",
+        "VariableType": "String",
+        "DataVisibility": [],
+        "AnalyzeText": false
+       },
+       {
+        "Description": "control_name",
+        "Type": "Recipient",
+        "Field": "control_name",
+        "VariableType": "String",
+        "DataVisibility": [],
+        "AnalyzeText": false
+       },
+       {
+        "Description": "target_avatar",
+        "Type": "Recipient",
+        "Field": "target_avatar",
+        "VariableType": "String",
+        "DataVisibility": [],
+        "AnalyzeText": false
+       },
+       {
+        "Description": "copy_intro_ms",
+        "Type": "Recipient",
+        "Field": "copy_intro_ms",
+        "VariableType": "String",
+        "DataVisibility": [],
+        "AnalyzeText": false
+       },
+       {
+        "Description": "copy_err_1",
+        "Type": "Recipient",
+        "Field": "copy_err_1",
+        "VariableType": "String",
+        "DataVisibility": [],
+        "AnalyzeText": false
+       },
+       {
+        "Description": "copy_n_miss_1",
+        "Type": "Recipient",
+        "Field": "copy_n_miss_1",
+        "VariableType": "String",
+        "DataVisibility": [],
+        "AnalyzeText": false
+       },
+       {
+        "Description": "copy_miss_1",
+        "Type": "Recipient",
+        "Field": "copy_miss_1",
+        "VariableType": "String",
+        "DataVisibility": [],
+        "AnalyzeText": false
+       },
+       {
+        "Description": "copy_err",
+        "Type": "Recipient",
+        "Field": "copy_err",
+        "VariableType": "String",
+        "DataVisibility": [],
+        "AnalyzeText": false
+       },
+       {
+        "Description": "copy_n_miss",
+        "Type": "Recipient",
+        "Field": "copy_n_miss",
+        "VariableType": "String",
+        "DataVisibility": [],
+        "AnalyzeText": false
+       },
+       {
+        "Description": "copy_miss",
+        "Type": "Recipient",
+        "Field": "copy_miss",
         "VariableType": "String",
         "DataVisibility": [],
         "AnalyzeText": false
@@ -3843,7 +3915,7 @@
      {
       "Type": "Block",
       "ID": "BL_zdJhMtbt4FaPRV3",
-      "FlowID": "FL_16",
+      "FlowID": "FL_18",
       "Autofill": []
      },
      {
@@ -3887,7 +3959,7 @@
      {
       "Type": "Block",
       "ID": "BL_UsiZk524ewEWZ7z",
-      "FlowID": "FL_17",
+      "FlowID": "FL_19",
       "Autofill": []
      },
      {
@@ -3926,7 +3998,7 @@
      },
      {
       "Type": "BlockRandomizer",
-      "FlowID": "FL_14",
+      "FlowID": "FL_16",
       "SubSet": "1",
       "EvenPresentation": true,
       "Flow": [
@@ -4073,36 +4145,84 @@
           "Value": "B"
          }
         ]
+       },
+       {
+        "Type": "EmbeddedData",
+        "FlowID": "FL_14",
+        "EmbeddedData": [
+         {
+          "Description": "category",
+          "Type": "Custom",
+          "Field": "category",
+          "VariableType": "String",
+          "DataVisibility": [],
+          "AnalyzeText": false,
+          "Value": "control"
+         },
+         {
+          "Description": "list",
+          "Type": "Custom",
+          "Field": "list",
+          "VariableType": "String",
+          "DataVisibility": [],
+          "AnalyzeText": false,
+          "Value": "A"
+         }
+        ]
+       },
+       {
+        "Type": "EmbeddedData",
+        "FlowID": "FL_15",
+        "EmbeddedData": [
+         {
+          "Description": "category",
+          "Type": "Custom",
+          "Field": "category",
+          "VariableType": "String",
+          "DataVisibility": [],
+          "AnalyzeText": false,
+          "Value": "control"
+         },
+         {
+          "Description": "list",
+          "Type": "Custom",
+          "Field": "list",
+          "VariableType": "String",
+          "DataVisibility": [],
+          "AnalyzeText": false,
+          "Value": "B"
+         }
+        ]
        }
       ]
      },
      {
       "Type": "Block",
       "ID": "BL_s1rbaVkSkRR92ie",
-      "FlowID": "FL_18",
-      "Autofill": []
-     },
-     {
-      "Type": "Block",
-      "ID": "BL_ExjGnyuRpnAuf3L",
-      "FlowID": "FL_19",
-      "Autofill": []
-     },
-     {
-      "Type": "Block",
-      "ID": "BL_W93f8Hk0MpTGB0T",
       "FlowID": "FL_20",
       "Autofill": []
      },
      {
       "Type": "Block",
-      "ID": "BL_TNVeZi2bYTNJPM1",
+      "ID": "BL_ExjGnyuRpnAuf3L",
       "FlowID": "FL_21",
       "Autofill": []
      },
      {
-      "Type": "EndSurvey",
+      "Type": "Block",
+      "ID": "BL_W93f8Hk0MpTGB0T",
       "FlowID": "FL_22",
+      "Autofill": []
+     },
+     {
+      "Type": "Block",
+      "ID": "BL_TNVeZi2bYTNJPM1",
+      "FlowID": "FL_23",
+      "Autofill": []
+     },
+     {
+      "Type": "EndSurvey",
+      "FlowID": "FL_24",
       "EndingType": "Advanced",
       "Options": {
        "Advanced": "true",
@@ -4112,7 +4232,7 @@
      }
     ],
     "Properties": {
-     "Count": 22,
+     "Count": 24,
      "RemovedFieldsets": []
     }
    }
@@ -4242,7 +4362,7 @@
    "SecondaryAttribute": "consent_text",
    "TertiaryAttribute": null,
    "Payload": {
-    "QuestionText": "<p><b>[PLACEHOLDER: IRB-APPROVED CONSENT TEXT]</b></p><p>This study takes about <b>22 minutes</b>. It requires <b>sound</b> (headphones or speakers) and a desktop or laptop computer.</p><p>You'll type the first name of someone you know and some brief notes about them, to help you design an avatar. The name and notes are not saved.</p><p>[Purpose, procedures, risks, benefits, compensation, confidentiality, voluntary participation, contact information.]</p>",
+    "QuestionText": "<p><b>[PLACEHOLDER: IRB-APPROVED CONSENT TEXT]</b></p><p>This study takes about <b>22 minutes</b>. It requires <b>sound</b> (headphones or speakers) and a desktop or laptop computer.</p><p>You'll make a simple cartoon avatar. Some participants design it to look like someone they know, first typing that person's first name and some brief notes about them; others copy an avatar we show them. Any name and notes you type are not saved.</p><p>[Purpose, procedures, risks, benefits, compensation, confidentiality, voluntary participation, contact information.]</p>",
     "DataExportTag": "consent_text",
     "QuestionType": "DB",
     "Selector": "TB",
@@ -4376,7 +4496,7 @@
      "Private": false,
      "Hidden": false
     },
-    "QuestionJS": "Qualtrics.SurveyEngine.addOnload(function () {\n  /* Loads the externally hosted experiment (GitHub Pages). Edit BASE_URL / VERSION here if they change. */\n  var q = this;\n  q.hideNextButton();\n  if (q.hidePreviousButton) { q.hidePreviousButton(); }\n  var BASE_URL = 'https://rbzsparks.github.io/srl-adult-prolific/experiment/';\n  var VERSION = '2.3.3';\n  var params = {\n    PROLIFIC_PID: \"${e://Field/PROLIFIC_PID}\", STUDY_ID: \"${e://Field/STUDY_ID}\", SESSION_ID: \"${e://Field/SESSION_ID}\",\n    category: \"${e://Field/category}\", list: \"${e://Field/list}\", design_version: \"${e://Field/design_version}\", stranger_set: \"${e://Field/stranger_set}\", debug: \"${e://Field/debug}\", name_label: \"${e://Field/name_label}\", binding: \"${e://Field/binding}\", checkins: \"${e://Field/checkins}\", ResponseID: \"${e://Field/ResponseID}\"\n  };\n  function fail(e) {\n    var c = q.getQuestionContainer ? q.getQuestionContainer() : document.body;\n    c.innerHTML = '<p style=\"font-size:18px;line-height:1.5\">Sorry, the study could not load. Please check your internet connection and reload this page. ' +\n      'If this keeps happening, please contact the researchers through Prolific.</p>';\n  }\n  var s = document.createElement('script');\n  s.src = BASE_URL + 'js/loader.js?v=' + VERSION;\n  s.onload = function () {\n    window.SRL_LOAD({ base: BASE_URL, mode: 'qualtrics', params: params, version: VERSION,\n      finish: function () { q.clickNextButton(); }, onError: fail });\n  };\n  s.onerror = fail;\n  document.head.appendChild(s);\n});\n"
+    "QuestionJS": "Qualtrics.SurveyEngine.addOnload(function () {\n  /* Loads the externally hosted experiment (GitHub Pages). Edit BASE_URL / VERSION here if they change. */\n  var q = this;\n  q.hideNextButton();\n  if (q.hidePreviousButton) { q.hidePreviousButton(); }\n  var BASE_URL = 'https://rbzsparks.github.io/srl-adult-prolific/experiment/';\n  var VERSION = '2.4.0';\n  var params = {\n    PROLIFIC_PID: \"${e://Field/PROLIFIC_PID}\", STUDY_ID: \"${e://Field/STUDY_ID}\", SESSION_ID: \"${e://Field/SESSION_ID}\",\n    category: \"${e://Field/category}\", list: \"${e://Field/list}\", design_version: \"${e://Field/design_version}\", stranger_set: \"${e://Field/stranger_set}\", debug: \"${e://Field/debug}\", name_label: \"${e://Field/name_label}\", binding: \"${e://Field/binding}\", checkins: \"${e://Field/checkins}\", ResponseID: \"${e://Field/ResponseID}\"\n  };\n  function fail(e) {\n    var c = q.getQuestionContainer ? q.getQuestionContainer() : document.body;\n    c.innerHTML = '<p style=\"font-size:18px;line-height:1.5\">Sorry, the study could not load. Please check your internet connection and reload this page. ' +\n      'If this keeps happening, please contact the researchers through Prolific.</p>';\n  }\n  var s = document.createElement('script');\n  s.src = BASE_URL + 'js/loader.js?v=' + VERSION;\n  s.onload = function () {\n    window.SRL_LOAD({ base: BASE_URL, mode: 'qualtrics', params: params, version: VERSION,\n      finish: function () { q.clickNextButton(); }, onError: fail });\n  };\n  s.onerror = fail;\n  document.head.appendChild(s);\n});\n"
    }
   },
   {

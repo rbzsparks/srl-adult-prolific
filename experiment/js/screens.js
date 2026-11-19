@@ -13,7 +13,8 @@ SRL.screens = (function () {
       <h1>Welcome</h1>
       <p>In this part of the study you will:</p>
       <ol>
-        <li>answer a few questions about someone you know, make a simple cartoon avatar of them, and do a short matching task,</li>
+        <li>${S.control ? 'make a simple cartoon avatar by copying one we show you, and do a short matching task,'
+          : 'answer a few questions about someone you know, make a simple cartoon avatar of them, and do a short matching task,'}</li>
         <li>watch short animated scenes,</li>
         <li>do a short arithmetic task, and answer some questions.</li>
       </ol>

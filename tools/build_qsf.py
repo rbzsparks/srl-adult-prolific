@@ -4,7 +4,8 @@ Survey flow:
   1. Embedded Data: PROLIFIC_PID, STUDY_ID, SESSION_ID, debug (from URL) + every field the experiment writes
   2. Device check block (JS) -> Branch: device_ok = 0 -> message + End of Survey (redirect SCREENOUT_CODE)
   3. Consent block -> Branch: declined -> "Please return this study" (no Next button) + End of Survey
-  4. Randomizer (evenly present): category x list (6 branches); repeat6: category x list x stranger_set (12 branches)
+  4. Randomizer (evenly present): category x list (8 branches); repeat6: category x list x stranger_set (16 branches).
+     category: acquaintance / moderate / close / control (v2.4: copy a random avatar; no known person)
   5. Experiment block (one question whose JS loads the experiment from BASE_URL; Next button hidden)
   6. Post-test questions, demographics, debrief
   7. End of Survey: redirect to Prolific completion URL
@@ -187,8 +188,9 @@ def main():
 
     q_cons_text = q({'QuestionText': '<p><b>[PLACEHOLDER: IRB-APPROVED CONSENT TEXT]</b></p>'
                                      f'<p>This study takes about <b>{est} minutes</b>. It requires <b>sound</b> (headphones or speakers) and a desktop or laptop computer.</p>'
-                                     '<p>You\'ll type the first name of someone you know and some brief notes about them, to help you design an avatar. '
-                                     'The name and notes are not saved.</p>'
+                                     '<p>You\'ll make a simple cartoon avatar. Some participants design it to look like someone they know, first typing '
+                                     'that person\'s first name and some brief notes about them; others copy an avatar we show them. '
+                                     'Any name and notes you type are not saved.</p>'
                                      '<p>[Purpose, procedures, risks, benefits, compensation, confidentiality, voluntary participation, contact information.]</p>'}, 'consent_text')
     q_cons = mc('Do you agree to take part in this study?', 'consent', ['I agree to take part', 'I do not agree'])
     b_cons = block('Consent', [q_cons_text, q_cons])
@@ -274,7 +276,7 @@ def main():
                                          'Type': 'If'}, 'Type': 'BooleanExpression'},
                    'Flow': [blk(b_decl), end()]}
     rand_children = []
-    for cat in ['acquaintance', 'moderate', 'close']:
+    for cat in ['acquaintance', 'moderate', 'close', 'control']:
         for lst in ['A', 'B']:
             if r6:
                 for ss in ['X', 'Y']:

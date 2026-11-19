@@ -10,6 +10,7 @@ window.SRL_FIELDS = {
     "recall_enabled", "revision_enabled", "matching_enabled", "checkins_enabled", "steps_source",
     "recall_ms", "recall_chars_1", "recall_chars_2", "recall_chars_3",
     "known_avatar", "unfamiliar_avatar", "unfam_changes", "unfam_k", "unfam_identity_dist", "unfamiliar_name",
+    "control_name", "target_avatar", "copy_intro_ms", "copy_err_1", "copy_n_miss_1", "copy_miss_1", "copy_err", "copy_n_miss", "copy_miss",
     "likeness_rating", "likeness_rt_ms", "likeness_1", "revision_offered", "revised", "likeness_2", "designer_ms_2", "designer_edits_2",
     "confirm_ms", "jordan_intro_ms",
     "match_keymap", "match_acc_kk", "match_acc_uu", "match_acc_ku", "match_acc_uk",

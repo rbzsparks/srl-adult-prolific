@@ -98,7 +98,9 @@ BINDING_COLS = ['recall_enabled', 'revision_enabled', 'matching_enabled', 'check
                 'likeness_1', 'revision_offered', 'revised', 'likeness_2', 'designer_ms_2', 'confirm_ms', 'jordan_intro_ms',
                 'match_keymap', 'match_acc_kk', 'match_acc_uu', 'match_acc_ku', 'match_acc_uk',
                 'match_rt_med_kk', 'match_rt_med_uu', 'match_rt_med_ku', 'match_rt_med_uk', 'match_acc_total', 'match_flag',
-                'checkin_order', 'represent_rating']
+                'checkin_order', 'represent_rating',
+                # control condition (v2.4; blank in the known-person categories)
+                'control_name', 'target_avatar', 'copy_intro_ms', 'copy_err_1', 'copy_n_miss_1', 'copy_miss_1', 'copy_err', 'copy_n_miss', 'copy_miss']
 LONG_COLS = [
     # participant level
     'prolific_pid', 'study_id', 'session_id', 'response_id', 'design_version', 'design_version_source', 'stranger_set', 'category', 'list', 'test_block_order', 'surprise_test', 'name_label_shown', 'mouseview_on',

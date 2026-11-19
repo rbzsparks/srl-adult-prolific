@@ -3,7 +3,7 @@
  * Edit this file, push to GitHub Pages, and the live study picks it up.
  * ===================================================================== */
 window.SRL_CONFIG = {
-  VERSION: '2.3.3',
+  VERSION: '2.4.0',
 
   /* ---------- Design version ---------- */
   // 'unique12' = 12 scene sets, each shown once (36 test trials).
@@ -84,8 +84,13 @@ window.SRL_CONFIG = {
   CATEGORIES: {
     acquaintance: 'Think of an <b>acquaintance</b>: someone you know by name and see from time to time, but are not close to (for example, a coworker, classmate, neighbor, or distant relative).',
     moderate: 'Think of a <b>friend or family member you are somewhat close to</b>, but who is not one of your very closest people.',
-    close: 'Think of one of your <b>closest friends or family members</b>: someone you feel very close to.'
+    close: 'Think of one of your <b>closest friends or family members</b>: someone you feel very close to.',
+    // Control (v2.4): no real person. The participant copies a random target avatar, which is then given a name from
+    // CONTROL_NAMES. The questions about the known person (name, relationship, closeness, contact, duration, recall
+    // notes, the post-scene "felt like" rating) are skipped; everything from the confirmation screen on is the same.
+    control: null
   },
+  CONTROL_NAMES: ['Sam', 'Robin', 'Drew', 'Kendall', 'Blake', 'Harper', 'Parker', 'Logan'],
   NAME_INSTRUCTION: "Please type their first name, not a family title like 'Mom' or 'Grandpa.' Please do not name a romantic partner.",
   FAMILY_TITLES: ['mom', 'mum', 'mommy', 'mummy', 'mother', 'ma', 'mama', 'momma', 'dad', 'daddy', 'father', 'pa', 'papa', 'pop', 'pops',
     'grandma', 'grandpa', 'grandmother', 'grandfather', 'granny', 'gran', 'grandad', 'granddad', 'gramps', 'nana', 'nan', 'nanna',

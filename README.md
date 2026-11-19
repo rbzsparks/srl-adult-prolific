@@ -7,6 +7,8 @@ meet an unfamiliar person ("Jordan"), do a short avatar–name matching task, re
 "get ready" countdown, watch 12 animated scenes with audio (with three short person check-ins), rate how much the avatar felt
 like their person, do a 45-second arithmetic filler, and then take surprise memory tests for words, faces and incidental objects.
 The steps that link the avatar to the person (v2.3) are in [§19](#19-linking-the-avatar-to-the-person-and-check-ins-v23).
+A fourth, **control** category (v2.4) has no known person: participants copy a random avatar, which is then given a name,
+and skip every question about a known person; see [§20](#20-control-condition-copy-a-random-avatar-v24).
 
 **Two versions share this codebase** (each runs as its own Qualtrics survey and Prolific study):
 - **unique12**: 12 scene sets, each shown once; 36 test trials. Survey: `qualtrics/survey.qsf`. Most of this README describes it.
@@ -37,6 +39,7 @@ Order of precedence for the design documents: `ANSWERS_ROUND2.md` > `UPDATES_v2.
 17. [Known limitations and untested paths](#17-known-limitations-and-untested-paths)
 18. [Repeat6 version (6 scene sets, each shown twice)](#18-repeat6-version-6-scene-sets-each-shown-twice)
 19. [Linking the avatar to the person, and check-ins (v2.3)](#19-linking-the-avatar-to-the-person-and-check-ins-v23)
+20. [Control condition: copy a random avatar (v2.4)](#20-control-condition-copy-a-random-avatar-v24)
 
 ---
 
@@ -108,7 +111,7 @@ Then open `http://localhost:8000/experiment/index.html?debug=1`. URL parameters:
 | Parameter | Meaning |
 |---|---|
 | `PROLIFIC_PID`, `STUDY_ID`, `SESSION_ID` | as Prolific sends them |
-| `category` | `acquaintance` \| `moderate` \| `close` (random if missing) |
+| `category` | `acquaintance` \| `moderate` \| `close` \| `control` (random if missing; `control`: §20) |
 | `list` | `A` \| `B` (random if missing) |
 | `design_version` | `unique12` \| `repeat6` (missing: `DESIGN_VERSION` in config.js, recorded as `design_version_source = config_fallback`) |
 | `stranger_set` | repeat6 only: `X` \| `Y` (random if missing) |
@@ -171,8 +174,8 @@ Survey flow in the .qsf:
 
 1. **Embedded Data**: `PROLIFIC_PID`, `STUDY_ID`, `SESSION_ID`, `debug`, `name_label` (from the URL), plus every field the experiment writes (392 fields in total; listed in `qualtrics/embedded_data_fields.txt`).
 2. **Device check** (JS, before consent): mobile/tablet (by user agent), or a screen smaller than 1024 × 650 physical pixels (either orientation; measured as CSS pixels × `devicePixelRatio`, so Windows display scaling or browser zoom doesn't fail an ordinary laptop) → message showing the detected reason and screen size → **End of Survey → redirect to `…/complete?cc=SCREENOUT_CODE`**. Qualtrics' preview has a **Mobile view** toggle; with it on, a phone-sized frame is shown, so preview with it off.
-3. **Consent** (placeholder text, shows the ~22 min estimate, ~20 in repeat6, and says the typed name and notes are not saved). "I do not agree" → "Please return this study on Prolific" (no Next button, no code).
-4. **Randomizer**: present 1 of 6, **evenly present** on. Each element sets `category` (acquaintance / moderate / close) × `list` (A / B).
+3. **Consent** (placeholder text, shows the ~22 min estimate, ~20 in repeat6, and says that some participants design an avatar of someone they know, typing a name and notes, while others copy an avatar, and that any name and notes typed are not saved; the consent comes before the Randomizer, so one text covers all four categories). "I do not agree" → "Please return this study on Prolific" (no Next button, no code).
+4. **Randomizer**: present 1 of 8 (repeat6: 1 of 16), **evenly present** on. Each element sets `category` (acquaintance / moderate / close / control) × `list` (A / B) (× `stranger_set` in repeat6).
 5. **Experiment (JS)**: one question whose JS loads the experiment from `BASE_URL`; the Next button is hidden and clicked automatically when the participant finishes.
 6. **Post-test questions**: expected a test? (Yes / No / Not sure), strategy (optional text), 2 experience items with 2 attention checks between them, technical problems (optional).
 7. **Demographics**: age (number 18–110), gender. *(Confirm the list with the IRB.)*
@@ -253,13 +256,16 @@ All in `experiment/config.js`.
 | `AVATAR_UNFAM_K`, `AVATAR_UNFAM_K_BALD_NO_FACIAL_HAIR`, `AVATAR_UNFAM_STEP`, `AVATAR_UNFAM_COLOUR_MAX_STEPS` | 4, 5, 0.35, 2 | unfamiliar-person rule (§9 People) |
 | `FOIL_K`, `FOIL_STEP` | 4, 0.35 | read only by `tools/make_foils.html`; foils are frozen in `stimuli.json` (§9 People) |
 | `UNFAMILIAR_NAMES` | Jordan, Taylor, Casey, Morgan, Riley, Avery, Quinn, Jamie (+4 spares) | first one that isn't a near-match of the typed name |
-| `CATEGORIES`, `NAME_INSTRUCTION`, `FAMILY_TITLES` | from UPDATES_v2 | prompt text per category; titles that trigger the "first name, not a title" flag |
+| `CATEGORIES`, `NAME_INSTRUCTION`, `FAMILY_TITLES` | from UPDATES_v2 | prompt text per category (`control: null`, v2.4); titles that trigger the "first name, not a title" flag |
+| `CONTROL_NAMES` | Sam, Robin, Drew, Kendall, Blake, Harper, Parker, Logan | control condition: the name the copied avatar is given (one at random; the unfamiliar person's name is then chosen as usual) |
 
 Not built (default "off" decisions with no implementation): spoken names (`AUDIO_NAMES`) and a spoken reply from the other person.
 
 ## 7. Procedure and timing
 
-Inside the experiment block (Qualtrics handles consent, post-test, demographics and debrief):
+Inside the experiment block (Qualtrics handles consent, post-test, demographics and debrief). The control category runs a
+shorter setup (§20): steps 2–6b are replaced by one "Copy this avatar" screen, 7 and 7b compare with the avatar to copy,
+and 10b is skipped.
 
 | # | Screen | Section timer |
 |---|---|---|
@@ -318,7 +324,7 @@ post-scene rating ~10 s, and the revision for some participants. **Confirm with 
   `checkins=0/1` (URL or embedded data; both are declared in the survey flow) override them per participant, e.g. set inside
   the Randomizer branches of a pilot copy of the survey. Recorded as `recall_enabled`, `revision_enabled`,
   `matching_enabled`, `checkins_enabled` and `steps_source` (config / override).
-- **Between subjects:** `category` (3) × `list` (2) from the Qualtrics Randomizer (6 branches, evenly presented). If those fields are empty (piping failure), the experiment assigns them at random and records `assign_fallback = 1` in the JSON backup.
+- **Between subjects:** `category` (4: acquaintance, moderate, close, control) × `list` (2) from the Qualtrics Randomizer (8 branches, evenly presented; repeat6 × `stranger_set`, 16). If those fields are empty (piping failure), the experiment assigns them at random and records `assign_fallback = 1` in the JSON backup.
 - **Lists:** list A: scene sets s01–s06 = known, s07–s12 = unfamiliar. List B: swapped. Scene sets are matched in pairs (s01/s07, s02/s08, …) on gender presentation, apparent age and skin-tone band. So within each list, the 6 known and the 6 unfamiliar scenes each have 3 female-presenting and 3 male-presenting strangers, covering the same 6 skin tones and the same age spread (2 young, 2 middle-aged, 2 older).
 - **Per participant (seeded RNG; `seed` is recorded, so every assignment can be reconstructed):**
   - incidental color per object type
@@ -576,7 +582,7 @@ python analysis/reshape_qualtrics.py export.csv -o long.csv
 
 | Field | Meaning |
 |---|---|
-| `category` | acquaintance / moderate / close |
+| `category` | acquaintance / moderate / close / control |
 | `list` | A / B |
 | `relationship_type` | Friend / Parent / Sibling / Grandparent / Other relative / Coworker or classmate / Neighbor / Other |
 | `is_kin` | 1 if Parent, Sibling, Grandparent or Other relative |
@@ -591,7 +597,7 @@ python analysis/reshape_qualtrics.py export.csv -o long.csv
 | `known_avatar`, `unfamiliar_avatar` | feature vectors `key=value;…` in the order of `FEATURE_KEYS` (js/people.js); sliders 0–1 to 2 decimals. `reshape_qualtrics.py` unpacks them into `known_<key>` / `unfam_<key>` columns |
 | `unfam_changes` | the unfamiliar person's categorical changes, `feature:from>to`, `|`-separated |
 | `unfam_k`, `unfam_identity_dist` | identity sliders moved (4, or 5 when bald without facial hair) and their Euclidean distance |
-| `likeness_rating`, `likeness_rt_ms` | "How much does this avatar look like [name]?" 1–7: the **final** rating (after any revision), and the first rating's response time |
+| `likeness_rating`, `likeness_rt_ms` | "How much does this avatar look like [name]?" 1–7 (control: "How much does your avatar look like the one you copied?"): the **final** rating (after any revision), and the first rating's response time |
 | `likeness_1`, `likeness_2` | first rating; rating after the revision (blank if not revised) |
 | `revision_offered`, `revised` | 1 if the revision was offered (first rating ≤ 4) / taken; blank when `REVISION_ENABLED` is off |
 | `designer_ms_2`, `designer_edits_2` | time and edits in the revision visit |
@@ -603,11 +609,16 @@ python analysis/reshape_qualtrics.py export.csv -o long.csv
 | `checkin_order` | the 3 questions in order, e.g. `feel>evening>dayoff` |
 | `checkin_k_qid`, `checkin_k_first`, `checkin_k_after_trial` | check-in k = 1–3: question (`feel` / `evening` / `dayoff`), who was asked first (known / unfamiliar), the scene it followed |
 | `checkin_k_known_resp`, `checkin_k_known_rt_ms`, `checkin_k_unf_resp`, `checkin_k_unf_rt_ms` | the option chosen (text) and response time, for each person |
-| `represent_rating`, `represent_rt_ms` | "While watching the scenes, how much did the avatar feel like [name]?" 1–7 |
+| `represent_rating`, `represent_rt_ms` | "While watching the scenes, how much did the avatar feel like [name]?" 1–7 (blank in control) |
 | `recall_enabled`, `revision_enabled`, `matching_enabled`, `checkins_enabled`, `steps_source` | which optional steps ran (1/0) and whether that came from config or a `binding` / `checkins` override |
 | `designer_edits`, `designer_resets`, `designer_tabs_visited` | designer edits (a released slider or a clicked option), section resets, sections opened (of 6) |
 | `designer_edits_<tab>`, `t_designer_<tab>_ms` | per section: skin, face, eyes, nosemouth, hair, extras |
 | `unfamiliar_name` | name shown under the unfamiliar person |
+| `control_name` | control only: the name given to the copied avatar (from `CONTROL_NAMES`; not personal, so it is recorded) |
+| `target_avatar` | control only: the random avatar to copy (feature string like `known_avatar`, which holds the participant's copy) |
+| `copy_intro_ms` | control only: time on the "Copy this avatar" screen |
+| `copy_err_1`, `copy_n_miss_1`, `copy_miss_1` | control only, after the first designer visit: mean absolute difference from the target over the 16 sliders (0–1), the number of categorical features that differ, and which ones (`age\|lid\|iris\|texture\|length\|hairStyle\|facial\|glasses\|covering`) |
+| `copy_err`, `copy_n_miss`, `copy_miss` | the same for the final avatar (after a revision, if taken) |
 | `audio_check_pass` | 1 if either check word was typed correctly (one letter off accepted) |
 | `audio_check_attempts` | 1–2 |
 | `filler2_accuracy` | arithmetic accuracy = correct / attempted (missed deadlines count as errors) |
@@ -690,7 +701,8 @@ These are recorded, not enforced: the preregistered rules decide.
 - **Name:** `name_flagged_title`, `name_suspect`.
 - **Audio:** `audio_check_pass`, `audio_load_errors`, `audio_simulated_scenes`.
 - **Reloads:** `reloaded_post_fam` → exclude; `reload_pre_fam` → keep, but note it.
-- **Manipulation check:** IOS by `category`.
+- **Manipulation check:** IOS by `category` (not asked in control).
+- **Control (v2.4):** `copy_err`, `copy_n_miss` and `likeness_rating` show how carefully the avatar was copied. Flags only.
 - **Binding (v2.3):** `match_flag` (matching accuracy < 75%), `likeness_rating`, `represent_rating`. Flags only.
 
 ## 15. Privacy
@@ -714,6 +726,7 @@ These are recorded, not enforced: the preregistered rules decide.
   the full JSON backup (what DataPipe sends), the jsPsych trial data, localStorage, sessionStorage, cookies, every network
   request made during the run, and the page DOM; and checks that the notes are gone from the experiment's memory. It must
   find nothing. Result on 2026-11-18, both versions with Prototype.js: passed (details in §19).
+- **Control condition (v2.4):** nothing is typed. The assigned name is not personal and is recorded (`control_name`).
 - **No photo uploads.** The person is represented only by the designer avatar.
 - **localStorage** holds only `{stage, reload_pre_fam}` under a key built from PROLIFIC_PID + STUDY_ID.
 - **External calls:** no third-party analytics. The only external requests are to GitHub Pages (code and audio) and, if enabled, DataPipe.
@@ -727,7 +740,7 @@ These are recorded, not enforced: the preregistered rules decide.
 - [ ] Confirm **custom JavaScript** is enabled on Harvard's Qualtrics (§4.1).
 - [ ] **Approve the ElevenLabs audio**: listen to every clip in `tools/audio_review.html`, especially the 12 novel words from both stranger and narrator (§10.1).
 - [ ] **Avatar review**: as suggested in the style sheet, have a few people from the communities represented look at the designer (`tools/designer_preview.html`) and the strangers (`tools/stimulus_sheet.html`) before launch. In particular, sign off on every redrawn hair style, the facial hair, and the hijab and turban in `tools/hair_review.html` (old vs. new); the hijab and turban are best reviewed by people who wear them.
-- [ ] **Consent text**: keep the sentence about the typed name and notes ("…The name and notes are not saved.") in the IRB version.
+- [ ] **Consent text**: keep the sentence about the avatar, the typed name and notes ("…Any name and notes you type are not saved.") in the IRB version. It now covers the control condition too (§20); the IRB amendment needs to add the control arm.
 - [ ] **Payment**, after the pilot measures the median duration.
 - [ ] **Pilot (~20 participants)**: check that face and word accuracy fall around 65–75% and incidental accuracy is above 25% but not near ceiling. Tuning knobs:
   - foil similarity (`FOIL_STEP` in config.js → `tools/make_foils.html` → redeploy)
@@ -920,3 +933,59 @@ confirmation, introduction and post-scene rating always run.
   similar-style list gained the plain bob.
 - `tools/privacy_check.html`, both versions: the name and notes were found nowhere (embedded data, JSON backup, jsPsych data,
   storage, cookies, network requests, DOM), and the notes were gone from memory.
+
+## 20. Control condition: copy a random avatar (v2.4)
+
+A fourth between-subjects category, `control`, randomized alongside the three closeness categories (equal allocation:
+8 Randomizer branches in unique12, 16 in repeat6). It gives a baseline in which the participant builds an avatar with the
+same tool and the same effort, then sees it named and in the scenes, but there is no real person behind it.
+
+### 20.1 What changes
+
+| Step | Known-person categories | Control |
+|---|---|---|
+| Welcome | "answer a few questions about someone you know, make a simple cartoon avatar of them…" | "make a simple cartoon avatar by copying one we show you…" |
+| Name, relationship, IOS, contact, duration, recall notes | asked | **skipped** (fields blank; `recall_enabled = 0`) |
+| Before the designer | (recall notes) | **"Copy this avatar"**: the target alone, button after 3 s (`copy_intro_ms`) |
+| Designer | "Make an avatar that looks like [name]" | **"Copy the avatar"**: the avatar to copy stays beside "Your avatar", at the same size |
+| Likeness (1–7) | "How much does this avatar look like [name]?" | "How much does your avatar look like the one you copied?", both shown |
+| Revision offer (≤ 4) | "Would you like to adjust the avatar?" | "…to look more like the one you copied?", both shown; same cutoff, one visit |
+| Confirmation | "From here on, this avatar is [name]. Whenever you see it, picture [name]." | "From here on, this avatar is **Sam**." (the name is given here, from `CONTROL_NAMES`) |
+| Unfamiliar person, matching, scenes, check-ins, tests | | **unchanged** (the copy takes the "known" role) |
+| "Felt like [name]" rating after the scenes | asked | **skipped** |
+
+In the data the copy keeps the **known** role everywhere (`known_avatar`, scene `condition = known`, `match_acc_kk`,
+`checkin_k_known_resp`, test fields), so the analysis code needs no changes: filter or model by `category = control`. The
+unfamiliar person is generated from the copy by the usual rule, and the name chooser keeps it from resembling the assigned
+name. Control participants reach the scenes a few minutes sooner (no questions about a person); this was left as is.
+
+### 20.2 The random target (`SRL.avatarRules.target`)
+
+Drawn from a third random stream of the recorded seed (`seed ^ 0x27D4EB2F`), so it is reproducible and does not shift the
+scene design or the binding steps:
+- skin depth evenly over the six skin bands the strangers use; undertone 0.2–0.85
+- age: young / middle-aged / older, equally
+- face, eye, brow, nose and mouth sliders uniform in 0.25–0.75; eyelids double (half), hooded or monolid
+- hair texture, hair colour and eye colour loosely follow skin depth, as among the strangers (e.g. mostly coily or curly
+  hair and dark eyes for deep skin; any hair colour for light skin); grey hair by age; freckles sometimes on light skin
+- a masculine or feminine presentation, half each (as among the strangers). Masculine: mostly short hair (75% short, 20%
+  medium, 5% long) and facial hair in about 45%. Feminine: 20% short, 40% medium, 40% long, no facial hair. Then any hair
+  style that fits the texture and length, with a bun at 0.4 and a buzz cut at 0.5 weight (they fit every texture); a buzz cut only for masculine
+  targets, bald only for older masculine ones
+- glasses in 1 in 4, **no head covering** (a covering is personal, so it is never assigned at random); a designer shirt
+  colour (never a stranger's)
+- never a near-twin of a stranger in the participant's set (same style, same age and skin within 0.15)
+
+### 20.3 Checks run (2026-11-19)
+
+- Full automatic runs with Prototype.js: control in unique12 and in repeat6 (stranger set Y), and a `close` run in unique12
+  to confirm the known-person flow is unchanged. All finished with no errors; the control runs filled `control_name`,
+  `target_avatar` and the copy fields, left every known-person field and `represent_rating` blank, and took the revision path.
+- Screenshots of every new screen at 1280 × 800 (the avatar to copy, the designer with both avatars, the rating, the
+  revision offer, the naming screen).
+- A sheet of 32 random targets and the style mix over 2,000 draws, to check variety and that no combination looks odd.
+- `sample_data/u12_auto2_control_B_*` (saved control run) goes through `tools/make_mock_export.py` and
+  `analysis/reshape_qualtrics.py`: 12 familiarization, 36 test and 6 check-in rows, control fields filled, known-person
+  fields blank.
+- `tools/privacy_check.html` (unique12, Prototype.js; a `close` run, since only the known-person categories type anything)
+  still passes after the setup steps were made conditional.

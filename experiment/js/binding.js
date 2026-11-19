@@ -4,7 +4,9 @@
  *
  * PRIVACY: the typed name (S.knownName) and the recall notes (S.notes) live only in memory. Nothing here returns,
  * logs or stores them: data objects hold labels ('known' / 'unfamiliar'), option text, counts and times only.
- * The notes are deleted from memory by main.js as soon as the last designer visit is over. */
+ * The notes are deleted from memory by main.js as soon as the last designer visit is over.
+ * Control condition (v2.4): S.knownName holds the assigned name (CONTROL_NAMES; recorded as control_name, as it is not
+ * personal) and S.targetSpec the avatar to copy. */
 SRL.binding = (function () {
   const U = SRL.util, UI = SRL.ui, P = SRL.people, C = () => SRL_CONFIG;
   const esc = U.escapeHtml;
@@ -89,10 +91,24 @@ SRL.binding = (function () {
     return `<div class="dz-notes"><div class="dz-notes-h">Your notes (not saved)</div>${n.map((x, i) => (x ? `<p><b>${RECALL_SHORT[i]}:</b> ${esc(x)}</p>` : '')).join('')}</div>`;
   }
 
+  /* ---------- Control condition: the avatar to copy ---------- */
+  // Two avatars side by side with a label above each (control: the target and the participant's copy).
+  const pairLabeled = (a, la, b, lb, w) => `<div class="bd-pair">${[[a, la], [b, lb]].map(([s, l]) => `<div class="bd-fig"><div class="bd-lab">${l}</div>` +
+    `<div class="bd-av" style="width:${w}px;height:${Math.round(w * 1.2)}px">${P.svg(s, { attrs: `width="${w}" height="${Math.round(w * 1.2)}"`, label: 'avatar' })}</div></div>`).join('')}</div>`;
+  async function copyIntro(el, S) {
+    const t0 = U.now();
+    const pg = UI.page(el, `<h1>Copy this avatar</h1><div class="bd-center">
+      <div class="bd-fig"><div class="bd-av" style="width:250px;height:300px">${P.svg(S.targetSpec, { attrs: 'width="250" height="300"', label: 'avatar to copy' })}</div></div>
+      <p class="srl-lead bd-say">Next you'll make a simple cartoon avatar. Your task is to make it look as much like this one as you can. This avatar will stay on screen while you work.</p>
+      <div class="srl-actions bd-actions-c"><button class="srl-btn" id="go">Start</button></div></div>`);
+    await delayedButton(pg, 3000, S);
+    return { copy_intro_ms: Math.round(U.now() - t0) };
+  }
+
   /* ---------- §2 Revision offer (after a likeness rating of 4 or lower) ---------- */
   async function revisionOffer(el, S, spec) {
-    const pg = UI.page(el, `<div class="bd-center">${figure(spec, S.knownName, 220)}
-      <p class="srl-lead">Would you like to adjust the avatar? You can make changes once.</p>
+    const pg = UI.page(el, `<div class="bd-center">${S.control ? pairLabeled(S.targetSpec, 'Avatar to copy', spec, 'Your avatar', 200) : figure(spec, S.knownName, 220)}
+      <p class="srl-lead">${S.control ? 'Would you like to adjust your avatar to look more like the one you copied? You can make changes once.' : 'Would you like to adjust the avatar? You can make changes once.'}</p>
       <div class="srl-actions bd-actions-c"><button class="srl-btn srl-btn-secondary" id="keep">Keep as is</button><button class="srl-btn" id="adj">Adjust</button></div></div>`);
     auto(S, () => pg.querySelector('#adj').click());
     return new Promise((resolve) => {
@@ -109,8 +125,10 @@ SRL.binding = (function () {
     await delayedButton(pg, 3000, S);
     return Math.round(U.now() - t0);
   }
-  const confirm = async (el, S) => ({ confirm_ms: await personScreen(el, S, S.knownSpec, S.knownName,
-    `From here on, this avatar is <b>${esc(S.knownName)}</b>. Whenever you see it, picture ${esc(S.knownName)}.`, `OK, this is ${esc(S.knownName)}`) });
+  // Control: the copy is given its name here, for the first time.
+  const confirm = async (el, S) => ({ confirm_ms: await personScreen(el, S, S.knownSpec, S.knownName, S.control
+    ? `From here on, this avatar is <b>${esc(S.knownName)}</b>.`
+    : `From here on, this avatar is <b>${esc(S.knownName)}</b>. Whenever you see it, picture ${esc(S.knownName)}.`, `OK, this is ${esc(S.knownName)}`) });
   const introduce = async (el, S) => ({ jordan_intro_ms: await personScreen(el, S, S.unfamiliarSpec, S.unfamiliarName,
     `This is <b>${esc(S.unfamiliarName)}</b>. You haven't met ${esc(S.unfamiliarName)} before.`, `OK, this is ${esc(S.unfamiliarName)}`) });
 
@@ -243,5 +261,5 @@ SRL.binding = (function () {
     return { represent_rating: val, represent_rt_ms: Math.round(U.now() - t0) };
   }
 
-  return { contact, recall, notesPanel, revisionOffer, confirm, introduce, matching, matchOrder, checkin, represent, CHECKIN_Q, CHECKIN_ORDERS, RECALL_Q };
+  return { contact, recall, notesPanel, copyIntro, pairLabeled, revisionOffer, confirm, introduce, matching, matchOrder, checkin, represent, CHECKIN_Q, CHECKIN_ORDERS, RECALL_Q };
 })();

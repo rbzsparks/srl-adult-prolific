@@ -39,6 +39,15 @@ unfam_changes
 unfam_k
 unfam_identity_dist
 unfamiliar_name
+control_name
+target_avatar
+copy_intro_ms
+copy_err_1
+copy_n_miss_1
+copy_miss_1
+copy_err
+copy_n_miss
+copy_miss
 likeness_rating
 likeness_rt_ms
 likeness_1
